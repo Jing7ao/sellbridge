@@ -2,9 +2,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ sqlite-dev
 
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
@@ -14,7 +14,7 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache sqlite-libs
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -26,7 +26,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# SQLite 数据目录（挂载 volume 持久化）
+# SQLite 数据目录
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
 USER nextjs
