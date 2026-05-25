@@ -114,9 +114,39 @@ async function fetchShopifyPrices(connections?: ShopifyCredentials[]): Promise<P
 
 function fetchMockPrices(): PriceEntry[] {
   const mockProducts = [
-    { id: 1001, title: "无线蓝牙耳机 TWS-500 ANC" },
-    { id: 1002, title: "USB-C 快充头 GaN 65W" },
-    { id: 1003, title: "手机支架 铝合金 可折叠" },
+    // 耳机/音频
+    { id: 1001, title: "无线蓝牙耳机 TWS-500 ANC", basePrice: 99 },
+    { id: 1011, title: "便携蓝牙音箱 低音炮", basePrice: 79 },
+    // 充电/电源
+    { id: 1002, title: "USB-C 快充头 GaN 65W", basePrice: 45 },
+    { id: 1012, title: "磁吸无线充电宝 10000mAh", basePrice: 69 },
+    // 手机配件
+    { id: 1003, title: "手机支架 铝合金 可折叠", basePrice: 15 },
+    { id: 1013, title: "钢化膜 iPhone 防窥屏", basePrice: 8 },
+    // 电脑/办公
+    { id: 1004, title: "机械键盘 87键 红轴 RGB", basePrice: 159 },
+    { id: 1014, title: "无线鼠标 人体工学 静音", basePrice: 49 },
+    // 家电/日用
+    { id: 1005, title: "迷你手持吸尘器 无线充电", basePrice: 129 },
+    { id: 1015, title: "便携果汁机 USB充电", basePrice: 55 },
+    // 服饰/配饰
+    { id: 1006, title: "运动手表 防水 心率监测", basePrice: 199 },
+    { id: 1016, title: "偏光太阳镜 防紫外线", basePrice: 35 },
+    // 美妆/个护
+    { id: 1007, title: "电动牙刷 声波 IPX7防水", basePrice: 89 },
+    { id: 1017, title: "LED化妆镜 三色补光", basePrice: 42 },
+    // 母婴/玩具
+    { id: 1008, title: "婴儿监控摄像头 夜视 WiFi", basePrice: 179 },
+    { id: 1018, title: "积木拼装模型 1000片", basePrice: 25 },
+    // 运动/户外
+    { id: 1009, title: "折叠露营椅 铝合金 便携", basePrice: 109 },
+    { id: 1019, title: "瑜伽垫 TPE 防滑 6mm", basePrice: 39 },
+    // 食品/饮料
+    { id: 1020, title: "越南咖啡粉 速溶黑咖啡 500g", basePrice: 28 },
+    { id: 1021, title: "泰国芒果干 无添加 300g", basePrice: 18 },
+    // 汽车/摩托
+    { id: 1022, title: "车载手机支架 吸盘式", basePrice: 22 },
+    { id: 1023, title: "汽车遮阳挡 前挡折叠", basePrice: 16 },
   ];
 
   const entries: PriceEntry[] = [];
@@ -124,11 +154,10 @@ function fetchMockPrices(): PriceEntry[] {
   const markets = ["th", "vn", "id", "my", "ph", "sg"];
 
   for (const product of mockProducts) {
-    const basePrice = product.id === 1001 ? 99 : product.id === 1002 ? 45 : 15;
     for (const platform of platforms) {
       for (const market of markets.slice(0, 3)) {
-        const jitter = (Math.random() - 0.5) * basePrice * 0.3;
-        const price = Math.round((basePrice + jitter) * 100) / 100;
+        const jitter = (Math.random() - 0.5) * product.basePrice * 0.3;
+        const price = Math.round((product.basePrice + jitter) * 100) / 100;
         entries.push({
           productId: `${platform}_${market}_${product.id}`,
           title: product.title,

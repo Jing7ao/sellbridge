@@ -62,7 +62,7 @@ const CHANGE_LABELS: Record<string, { icon: React.ReactNode; color: string }> = 
   up: { icon: <TrendingUp className="w-3.5 h-3.5" />, color: "text-red-500" },
   down: { icon: <TrendingDown className="w-3.5 h-3.5" />, color: "text-emerald-500" },
   same: { icon: <span className="w-3.5 h-3.5 inline-block">—</span>, color: "text-slate-400" },
-  new: { icon: <span className="w-3.5 h-3.5 inline-block text-xs font-bold">NEW</span>, color: "text-blue-500" },
+  new: { icon: <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />, color: "text-blue-500" },
 };
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
