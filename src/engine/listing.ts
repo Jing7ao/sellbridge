@@ -30,10 +30,33 @@ export interface ShopifyCredentials {
   accessToken: string;
 }
 
+export interface LazadaCredentials {
+  appKey: string;
+  appSecret: string;
+  accessToken: string;
+  market: string;
+}
+
+export interface ShopeeCredentials {
+  partnerId: number;
+  partnerKey: string;
+  shopId: number;
+  accessToken: string;
+  market: string;
+}
+
+export interface TiktokCredentials {
+  appKey: string;
+  appSecret: string;
+  accessToken: string;
+  shopCipher?: string;
+  market: string;
+}
+
 export interface StoreConnection {
   platform: Platform;
   market: string;
-  credentials: ShopifyCredentials;
+  credentials: Record<string, unknown>;
 }
 
 // ── 通用输入 ──
@@ -110,9 +133,10 @@ function getShopifyClient(creds?: ShopifyCredentials): ShopifyClient | null {
 async function listToLazada(
   market: MarketCode,
   translation: TranslationResult,
-  input: ListingInput
+  input: ListingInput,
+  creds?: LazadaCredentials
 ): Promise<Partial<ListingResult>> {
-  const client = getLazadaClient(market);
+  const client = getLazadaClient(market, creds);
   if (!client) {
     return { success: false, error: `缺少 Lazada ${market.toUpperCase()} 站点凭证` };
   }
@@ -150,9 +174,10 @@ async function listToLazada(
 async function listToShopee(
   market: ShopeeMarketCode,
   translation: TranslationResult,
-  input: ListingInput
+  input: ListingInput,
+  creds?: ShopeeCredentials
 ): Promise<Partial<ListingResult>> {
-  const client = getShopeeClient(market);
+  const client = getShopeeClient(market, creds);
   if (!client) {
     return { success: false, error: `缺少 Shopee ${market.toUpperCase()} 站点凭证` };
   }
@@ -202,9 +227,10 @@ async function listToShopee(
 async function listToTiktok(
   market: TiktokMarketCode,
   translation: TranslationResult,
-  input: ListingInput
+  input: ListingInput,
+  creds?: TiktokCredentials
 ): Promise<Partial<ListingResult>> {
-  const client = getTiktokClient(market);
+  const client = getTiktokClient(market, creds);
   if (!client) {
     return { success: false, error: `缺少 TikTok ${market.toUpperCase()} 站点凭证` };
   }
@@ -335,8 +361,8 @@ export async function listProduct(
         success: false,
       };
 
-      // 如果有 storeConnections，按用户已连接的店铺过滤
-      if (storeConnections !== undefined && platform === "shopify") {
+      // 如果有 storeConnections，优先使用数据库中的店铺凭证
+      if (storeConnections) {
         const conn = storeConnections.find(
           (c) => c.platform === platform && c.market === market
         );
@@ -346,7 +372,23 @@ export async function listProduct(
         }
 
         try {
-          const platformResult = await listToShopify(translation, input, conn.credentials);
+          let platformResult: Partial<ListingResult>;
+          switch (platform) {
+            case "lazada":
+              platformResult = await listToLazada(market, translation, input, conn.credentials as unknown as LazadaCredentials);
+              break;
+            case "shopee":
+              platformResult = await listToShopee(market as ShopeeMarketCode, translation, input, conn.credentials as unknown as ShopeeCredentials);
+              break;
+            case "tiktok":
+              platformResult = await listToTiktok(market as TiktokMarketCode, translation, input, conn.credentials as unknown as TiktokCredentials);
+              break;
+            case "shopify":
+              platformResult = await listToShopify(translation, input, conn.credentials as unknown as ShopifyCredentials);
+              break;
+            default:
+              platformResult = { success: false, error: `不支持的平台: ${platform}` };
+          }
           results.push({ ...base, ...platformResult });
         } catch (err) {
           results.push({ ...base, success: false, error: err instanceof Error ? err.message : String(err) });
@@ -354,7 +396,7 @@ export async function listProduct(
         continue;
       }
 
-      // 无 storeConnections 时走 env vars fallback（CLI 模式）
+      // 无 storeConnections 时走 env vars fallback
       try {
         let platformResult: Partial<ListingResult>;
 

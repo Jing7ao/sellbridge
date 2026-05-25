@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listProduct } from "../../../src/engine/listing";
-import type { ListingInput, Platform, StoreConnection, ShopifyCredentials } from "../../../src/engine/listing";
+import type { ListingInput, Platform, StoreConnection } from "../../../src/engine/listing";
 import { checkRateLimit } from "../../../src/middleware/rate-limit";
 import { addEntry } from "../../../src/store/history";
 import { saveBase64Image } from "../../../src/store/image";
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const activePlatforms: Platform[] = (platforms?.length ? platforms : ["shopify"]) as Platform[];
 
-    // 查询用户的 Shopify 店铺连接
+    // 查询用户已连接的所有平台店铺
     const userStores: StoreConnection[] = [];
     try {
       const rows = db
@@ -60,14 +60,12 @@ export async function POST(req: NextRequest) {
         .all();
 
       for (const row of rows) {
-        if (row.platform === "shopify") {
-          const creds = JSON.parse(decryptToken(row.encryptedCredentials, row.iv, row.authTag));
-          userStores.push({
-            platform: "shopify",
-            market: row.market,
-            credentials: creds as ShopifyCredentials,
-          });
-        }
+        const creds = JSON.parse(decryptToken(row.encryptedCredentials, row.iv, row.authTag));
+        userStores.push({
+          platform: row.platform as Platform,
+          market: row.market,
+          credentials: creds,
+        });
       }
     } catch (err) {
       log.error("Failed to load store connections", { error: String(err) });
@@ -127,7 +125,7 @@ export async function POST(req: NextRequest) {
       images: imageUrls,
       results,
       translationMode: historyEntry.translationMode,
-      shopifyMode: userStores.length ? "live" : "mock",
+      connectedPlatforms: userStores.map((s) => s.platform),
       timestamp,
       historyId: historyEntry.id,
     });

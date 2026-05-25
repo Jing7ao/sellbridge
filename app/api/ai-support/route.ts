@@ -48,9 +48,9 @@ export async function POST(req: NextRequest) {
     log.info("AI support request", { msgCount: messages.length, lastMsg });
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey === "sk-xxxxxx") {
+    if (!apiKey || apiKey === "sk-xxxxxx" || apiKey.length < 10) {
       return NextResponse.json({
-        reply: "AI 客服服务暂未配置 API Key。请在 .env.local 中设置 ANTHROPIC_API_KEY 为你的 DeepSeek API Key。",
+        reply: "嗨～小桥的 AI 大脑还没连上呢！😅\n\n管理员需要在 Railway 环境变量中设置 ANTHROPIC_API_KEY 为有效的 DeepSeek API Key，小桥就能立刻为你服务啦！\n\n获取方式：访问 platform.deepseek.com → 注册 → API Keys → 创建 Key → 复制到 Railway 的 Variables 中。\n\n部署后记得重新部署一次哦～",
       });
     }
 
