@@ -1,0 +1,172 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Menu, X, LogOut, Package, History, BarChart3,
+  Bot, Settings, Globe,
+} from "lucide-react";
+import { SessionProvider, useSession, signOut } from "next-auth/react";
+import "./globals.css";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="zh-CN">
+      <body>
+        <SessionProvider>
+          <AppShell>{children}</AppShell>
+        </SessionProvider>
+      </body>
+    </html>
+  );
+}
+
+function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: session } = useSession();
+
+  const isLoginPage = pathname === "/login";
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* 移动端遮罩 */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* 侧边栏 */}
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white flex flex-col shrink-0 transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-white/5 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5" onClick={() => setSidebarOpen(false)}>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Globe className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight">
+                <span className="gradient-text">SellBridge</span>
+              </h1>
+            </div>
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1 text-slate-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* 导航 */}
+        <nav className="flex-1 px-3 py-5 space-y-0.5">
+          <NavItem
+            href="/" icon={<Package className="w-4 h-4" />}
+            label="商品上架" active={pathname === "/"}
+          />
+          <NavItem
+            href="/history" icon={<History className="w-4 h-4" />}
+            label="上架记录" active={pathname === "/history"}
+          />
+          <NavItem
+            href="/monitor" icon={<BarChart3 className="w-4 h-4" />}
+            label="价格监控" active={pathname === "/monitor"}
+          />
+          <NavItem
+            href="/ai-support" icon={<Bot className="w-4 h-4" />}
+            label="AI 客服" active={pathname === "/ai-support"}
+          />
+          <NavItem
+            href="/settings" icon={<Settings className="w-4 h-4" />}
+            label="店铺设置" active={pathname === "/settings"}
+          />
+        </nav>
+
+        {/* 用户区域 */}
+        <div className="px-4 py-3 mx-2 mb-3 rounded-2xl bg-white/5 backdrop-blur border border-white/5">
+          {session?.user && (
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white text-xs font-bold shadow-md shrink-0">
+                {(session.user.name || session.user.email || "U")[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-slate-200 truncate">
+                  {session.user.name || session.user.email}
+                </p>
+                <p className="text-xs text-slate-400 truncate">{session.user.email}</p>
+              </div>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors shrink-0"
+                title="退出登录"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <p className="text-[10px] text-slate-500 mt-2">v0.2.0 · Multi-tenant</p>
+        </div>
+      </aside>
+
+      {/* 主内容区 */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* 移动端顶栏 */}
+        <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-200 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-bold text-sm">
+            <span className="gradient-text">SellBridge</span>
+          </span>
+        </header>
+
+        <main className="flex-1 overflow-auto bg-slate-50">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+function NavItem({
+  href,
+  icon,
+  label,
+  active,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative ${
+        active
+          ? "bg-white/10 text-white font-medium"
+          : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+      }`}
+    >
+      {active && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-gradient-to-b from-indigo-400 to-violet-500" />
+      )}
+      <span className={`${active ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-300"}`}>
+        {icon}
+      </span>
+      <span>{label}</span>
+    </Link>
+  );
+}
