@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || crypto.randomUUID();
+
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: NEXTAUTH_SECRET });
   const isAuth = !!token;
   const { pathname } = req.nextUrl;
 
