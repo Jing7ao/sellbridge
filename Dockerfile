@@ -8,6 +8,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+RUN mkdir -p /app/data
 RUN npm run build
 
 # ---- Production Stage ----
