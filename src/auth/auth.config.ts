@@ -1,17 +1,10 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
 import { db } from "../db/index";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
-
-const NEXTAUTH_SECRET =
-  process.env.NEXTAUTH_SECRET ||
-  (() => {
-    console.warn("[auth] NEXTAUTH_SECRET not set, using random fallback — sessions will not survive restarts");
-    return crypto.randomBytes(32).toString("hex");
-  })();
+import { NEXTAUTH_SECRET } from "./secret";
 
 export const authConfig: NextAuthOptions = {
   providers: [
