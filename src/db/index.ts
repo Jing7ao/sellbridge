@@ -66,8 +66,14 @@ if (DATABASE_URL) {
   const pool = new Pool({
     connectionString: DATABASE_URL,
     max: 5,
-    connectionTimeoutMillis: 10000,
+    min: 1,
+    idleTimeoutMillis: 0,
+    connectionTimeoutMillis: 5000,
     ...(isPublicHost ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
+
+  pool.on("connect", () => {
+    console.log("[db] New pg connection established");
   });
 
   pool.on("error", (err) => {

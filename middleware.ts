@@ -4,10 +4,12 @@ import { getToken } from "next-auth/jwt";
 import { NEXTAUTH_SECRET } from "./src/auth/secret";
 
 export async function middleware(req: NextRequest) {
+  const start = Date.now();
+  const pathname = req.nextUrl.pathname;
+
   const proto = req.headers.get("x-forwarded-proto") ?? "http";
   const token = await getToken({ req, secret: NEXTAUTH_SECRET, secureCookie: proto === "https" });
   const isAuth = !!token;
-  const { pathname } = req.nextUrl;
 
   const STATIC_EXTS = /\.(mp4|webm|jpg|jpeg|png|gif|svg|ico|woff2?|ttf|eot)$/i;
   if (
@@ -30,6 +32,8 @@ export async function middleware(req: NextRequest) {
     if (!isAuth) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
     }
+    const ms = Date.now() - start;
+    if (ms > 500) console.warn(`[mw] slow ${pathname} — ${ms}ms`);
     return NextResponse.next();
   }
 
@@ -39,6 +43,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const ms = Date.now() - start;
+  if (ms > 500) console.warn(`[mw] slow page ${pathname} — ${ms}ms`);
   return NextResponse.next();
 }
 
