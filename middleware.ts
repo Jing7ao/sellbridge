@@ -4,7 +4,8 @@ import { getToken } from "next-auth/jwt";
 import { NEXTAUTH_SECRET } from "./src/auth/secret";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: NEXTAUTH_SECRET });
+  const proto = req.headers.get("x-forwarded-proto") ?? "http";
+  const token = await getToken({ req, secret: NEXTAUTH_SECRET, secureCookie: proto === "https" });
   const isAuth = !!token;
   const { pathname } = req.nextUrl;
 

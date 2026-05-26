@@ -10,20 +10,29 @@ export function getSession() {
 
 export async function getAuth(): Promise<{ userId: string; email: string } | null> {
   const session = await getSession();
-  if (!session?.user) return null;
+  if (!session?.user) {
+    console.warn("[auth] getAuth: no session or no user");
+    return null;
+  }
 
   const userId = (session.user as { id: string }).id;
   const email = session.user.email ?? "";
 
+  if (!userId) {
+    console.warn("[auth] getAuth: session has no userId");
+    return null;
+  }
+
   // 验证用户是否仍存在（防止数据库被重建后旧 session 残留）
-  if (userId) {
-    try {
-      const rows = await db.select({ _: users.id }).from(users).where(eq(users.id, userId)).limit(1);
-      if (!rows[0]) return null;
-    } catch {
-      // DB 初始化失败也返回 null
+  try {
+    const rows = await db.select({ _: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!rows[0]) {
+      console.warn("[auth] getAuth: user not found in DB", { userId });
       return null;
     }
+  } catch (err) {
+    console.error("[auth] getAuth: DB error checking user existence:", (err as Error).message);
+    return null;
   }
 
   return { userId, email };
