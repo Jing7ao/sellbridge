@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, markets, platforms, price, quantity, weight, images, keywords } = body;
+    const { title, description, markets, platforms, price, quantity, weight, images, keywords, category, packageLength, packageWidth, packageHeight } = body;
 
     if (!title || !markets?.length) {
       return NextResponse.json(
@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
       markets,
       platforms: activePlatforms,
       keywords: keywords?.length ? keywords : [],
+      category: category || "",
       images: imageUrls,
       skus: [
         {
@@ -84,9 +85,9 @@ export async function POST(req: NextRequest) {
           price: parseFloat(price) || 0,
           quantity: parseInt(quantity) || 0,
           packageWeight: parseFloat(weight) || 0.5,
-          packageHeight: 10,
-          packageLength: 10,
-          packageWidth: 10,
+          packageHeight: parseFloat(packageHeight) || 10,
+          packageLength: parseFloat(packageLength) || 10,
+          packageWidth: parseFloat(packageWidth) || 10,
         },
       ],
     };

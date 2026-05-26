@@ -4,6 +4,7 @@ import { db } from "../../../../src/db/index";
 import { users } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
+import { checkPassword } from "../../../../src/auth/password";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,8 +18,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "请提供有效的邮箱地址" }, { status: 400 });
     }
 
-    if (typeof password !== "string" || password.length < 6) {
-      return NextResponse.json({ error: "密码至少 6 位" }, { status: 400 });
+    const pw = checkPassword(password);
+    if (!pw.valid) {
+      return NextResponse.json({ error: pw.errors[0] }, { status: 400 });
     }
 
     const existing = db.select().from(users).where(eq(users.email, email)).get();

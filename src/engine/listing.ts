@@ -65,6 +65,7 @@ export interface ListingInput {
   title: string;
   description?: string;
   keywords?: string[];
+  category?: string;
   images: string[];
   skus: {
     sellerSku: string;

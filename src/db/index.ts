@@ -61,7 +61,19 @@ function getDb() {
       prices TEXT NOT NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+    CREATE TABLE IF NOT EXISTS credit_transactions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
+
+  // 迁移：为已有 users 表添加 credits 列（如果不存在则忽略错误）
+  try { _sqlite.exec(`ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 100;`); }
+  catch { /* column already exists */ }
 
   _db = drizzle(_sqlite, { schema });
   return _db;

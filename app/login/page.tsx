@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles, Check, X } from "lucide-react";
+import { checkPassword } from "../../src/auth/password";
 
 const FEATURES = [
   { icon: Globe, title: "一键上架", desc: "同时发布到 Lazada / Shopee / TikTok Shop / Shopify" },
@@ -20,6 +21,13 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const passwordCheck = useMemo(() => {
+    if (mode === "register") return checkPassword(password);
+    return null;
+  }, [password, mode]);
+
+  const passwordOk = mode === "login" || (passwordCheck?.valid ?? false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -200,11 +208,65 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
                     className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 shadow-sm transition-all duration-200 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
-                    placeholder="至少 6 位"
+                    placeholder={mode === "register" ? "至少8位，含大小写字母+数字" : "输入密码"}
                   />
                 </div>
+
+                {mode === "register" && password.length > 0 && (
+                  <div className="mt-2 animate-fade-in">
+                    {/* 强度条 */}
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4].map((level) => {
+                        const filled = level <= (passwordCheck?.strength ?? 0);
+                        const colors = [
+                          "bg-red-400",
+                          "bg-orange-400",
+                          "bg-amber-400",
+                          "bg-emerald-400",
+                        ];
+                        return (
+                          <div
+                            key={level}
+                            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                              filled ? colors[level - 1] : "bg-slate-200"
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      !passwordCheck ? "text-slate-400" :
+                      passwordCheck.strength <= 1 ? "text-red-500" :
+                      passwordCheck.strength === 2 ? "text-orange-500" :
+                      passwordCheck.strength === 3 ? "text-amber-500" :
+                      "text-emerald-500"
+                    }`}>
+                      {passwordCheck?.label ?? ""}
+                    </span>
+
+                    {/* 四项要求 */}
+                    <div className="grid grid-cols-2 gap-1 mt-2">
+                      {[
+                        { ok: password.length >= 8, label: "至少 8 位" },
+                        { ok: /[A-Z]/.test(password), label: "大写字母" },
+                        { ok: /[a-z]/.test(password), label: "小写字母" },
+                        { ok: /[0-9]/.test(password), label: "含数字" },
+                      ].map((req) => (
+                        <div key={req.label} className="flex items-center gap-1">
+                          {req.ok ? (
+                            <Check className="w-3 h-3 text-emerald-500" />
+                          ) : (
+                            <X className="w-3 h-3 text-slate-300" />
+                          )}
+                          <span className={`text-xs ${req.ok ? "text-emerald-600" : "text-slate-400"}`}>
+                            {req.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -215,7 +277,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading || !email || !password}
+                disabled={loading || !email || !password || !passwordOk}
                 className="btn-primary w-full"
               >
                 {loading ? (

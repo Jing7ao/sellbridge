@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Menu, X, LogOut, Package, History, BarChart3,
-  Bot, Settings, Globe,
+  Bot, Settings, Globe, UserCircle,
 } from "lucide-react";
 import { SessionProvider, useSession, signOut } from "next-auth/react";
 import "./globals.css";
@@ -90,6 +90,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <NavItem
             href="/settings" icon={<Settings className="w-4 h-4" />}
             label="店铺设置" active={pathname === "/settings"}
+          />
+          <NavItem
+            href="/account" icon={<UserCircle className="w-4 h-4" />}
+            label="用户中心" active={pathname === "/account"}
           />
         </nav>
 

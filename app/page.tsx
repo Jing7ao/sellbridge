@@ -3,8 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Plus, Trash2, Globe, Send, CheckCircle, XCircle, Loader2,
-  ImagePlus, Package, Tag, Sparkles,
+  ImagePlus, Package, Tag, Sparkles, Ruler, List,
 } from "lucide-react";
+
+const CATEGORIES = [
+  "手机及配件", "电脑及办公", "消费电子", "家电",
+  "服饰鞋包", "美妆个护", "母婴用品", "家居生活",
+  "运动户外", "食品饮料", "汽车用品", "玩具爱好",
+] as const;
 
 const MARKETS = [
   { code: "th", name: "泰国", flag: "🇹🇭", currency: "THB" },
@@ -47,7 +53,8 @@ export default function Home() {
   const [description, setDescription] = useState("");
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set(["th", "vn"]));
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(["shopify"]));
-  const [sku, setSku] = useState({ price: "99.00", quantity: "100", weight: "0.5" });
+  const [category, setCategory] = useState("");
+  const [sku, setSku] = useState({ price: "99.00", quantity: "100", weight: "0.5", length: "10", width: "10", height: "10" });
   const [imageFiles, setImageFiles] = useState<{ preview: string; base64: string }[]>([]);
   const [keywords, setKeywords] = useState("");
   const [loading, setLoading] = useState(false);
@@ -107,9 +114,13 @@ export default function Home() {
           description,
           markets: Array.from(selectedMarkets),
           platforms: Array.from(selectedPlatforms),
+          category,
           price: parseFloat(sku.price),
           quantity: parseInt(sku.quantity),
           weight: parseFloat(sku.weight),
+          packageLength: parseFloat(sku.length) || 10,
+          packageWidth: parseFloat(sku.width) || 10,
+          packageHeight: parseFloat(sku.height) || 10,
           images: imageFiles.map((f) => f.base64),
           keywords: keywords.split(/[,，、\s]+/).filter(Boolean),
         }),
@@ -236,6 +247,24 @@ export default function Home() {
             )}
           </div>
 
+          {/* 品类选择 */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <List className="w-3.5 h-3.5 inline mr-1" />
+              商品品类 <span className="text-slate-400 font-normal text-xs">（必选，匹配各平台分类）</span>
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="input-modern bg-white"
+            >
+              <option value="">-- 请选择品类 --</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
           {/* 关键词 */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -251,7 +280,7 @@ export default function Home() {
             />
           </div>
 
-          {/* SKU */}
+          {/* SKU + 尺寸 */}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">价格 (CNY)</label>
@@ -274,6 +303,35 @@ export default function Home() {
               <input
                 type="number" value={sku.weight}
                 onChange={(e) => setSku({ ...sku, weight: e.target.value })}
+                className="input-modern"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <Ruler className="w-3.5 h-3.5 inline mr-1" />
+                长 (cm)
+              </label>
+              <input
+                type="number" value={sku.length}
+                onChange={(e) => setSku({ ...sku, length: e.target.value })}
+                className="input-modern"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">宽 (cm)</label>
+              <input
+                type="number" value={sku.width}
+                onChange={(e) => setSku({ ...sku, width: e.target.value })}
+                className="input-modern"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">高 (cm)</label>
+              <input
+                type="number" value={sku.height}
+                onChange={(e) => setSku({ ...sku, height: e.target.value })}
                 className="input-modern"
               />
             </div>

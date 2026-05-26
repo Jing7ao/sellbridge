@@ -5,6 +5,16 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name"),
+  credits: integer("credits").notNull().default(100),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export const creditTransactions = sqliteTable("credit_transactions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  type: text("type").notNull(),  // "signup_bonus" | "topup" | "listing_fee" | "refund"
+  description: text("description").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
