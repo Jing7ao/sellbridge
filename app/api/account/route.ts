@@ -10,16 +10,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "未登录" }, { status: 401 });
   }
 
-  const user = db.select().from(users).where(eq(users.id, auth.userId)).get();
+  const userRows = await db.select().from(users).where(eq(users.id, auth.userId)).limit(1);
+  const user = userRows[0];
   if (!user) {
     return NextResponse.json({ error: "用户不存在" }, { status: 404 });
   }
 
-  const transactions = db
+  const transactions = await db
     .select()
     .from(creditTransactions)
-    .where(eq(creditTransactions.userId, auth.userId))
-    .all();
+    .where(eq(creditTransactions.userId, auth.userId));
 
   return NextResponse.json({
     id: user.id,

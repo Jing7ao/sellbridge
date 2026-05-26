@@ -1,52 +1,52 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 
-export const users = sqliteTable("users", {
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name"),
   credits: integer("credits").notNull().default(100),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const creditTransactions = sqliteTable("credit_transactions", {
+export const creditTransactions = pgTable("credit_transactions", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(),
-  type: text("type").notNull(),  // "signup_bonus" | "topup" | "listing_fee" | "refund"
+  type: text("type").notNull(),
   description: text("description").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const storeConnections = sqliteTable("store_connections", {
+export const storeConnections = pgTable("store_connections", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  platform: text("platform").notNull(),   // "lazada" | "shopee" | "tiktok" | "shopify"
-  market: text("market").notNull(),       // "th" | "vn" | "id" | "my" | "ph" | "sg"
+  platform: text("platform").notNull(),
+  market: text("market").notNull(),
   encryptedCredentials: text("encrypted_credentials").notNull(),
   iv: text("iv").notNull(),
   authTag: text("auth_tag").notNull(),
   storeName: text("store_name"),
   status: text("status").notNull().default("active"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const listingHistory = sqliteTable("listing_history", {
+export const listingHistory = pgTable("listing_history", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  markets: text("markets").notNull(),       // JSON array
-  platforms: text("platforms").notNull(),   // JSON array
-  results: text("results").notNull(),       // JSON blob
+  markets: text("markets").notNull(),
+  platforms: text("platforms").notNull(),
+  results: text("results").notNull(),
   translationMode: text("translation_mode"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const priceSnapshots = sqliteTable("price_snapshots", {
+export const priceSnapshots = pgTable("price_snapshots", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   timestamp: text("timestamp").notNull(),
-  prices: text("prices").notNull(),         // JSON: Record<string, number>
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  prices: text("prices").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

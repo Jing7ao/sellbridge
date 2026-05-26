@@ -6,7 +6,7 @@ import { ShopifyClient } from "../adapters/shopify/client.js";
 import { ShopifyProductService } from "../adapters/shopify/products.js";
 import { db } from "../db/index.js";
 import { priceSnapshots } from "../db/schema.js";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -187,15 +187,14 @@ function loadHistoryLegacy(): PriceSnapshot[] {
   }
 }
 
-function loadHistory(userId: string): PriceSnapshot[] {
+async function loadHistory(userId: string): Promise<PriceSnapshot[]> {
   try {
-    const rows = db
+    const rows = await db
       .select()
       .from(priceSnapshots)
       .where(eq(priceSnapshots.userId, userId))
       .orderBy(desc(priceSnapshots.createdAt))
-      .limit(30)
-      .all();
+      .limit(30);
 
     return rows.map((row) => ({
       timestamp: row.timestamp,
@@ -219,36 +218,35 @@ function saveSnapshotLegacy(snapshot: PriceSnapshot): void {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(trimmed, null, 2), "utf-8");
 }
 
-function saveSnapshot(userId: string, snapshot: PriceSnapshot): void {
+async function saveSnapshot(userId: string, snapshot: PriceSnapshot): Promise<void> {
   try {
-    const recent = db
+    const recent = await db
       .select()
       .from(priceSnapshots)
       .where(eq(priceSnapshots.userId, userId))
       .orderBy(desc(priceSnapshots.createdAt))
-      .limit(30)
-      .all();
+      .limit(30);
 
     if (recent.length >= 30) {
       const oldest = recent[recent.length - 1];
-      db.delete(priceSnapshots).where(eq(priceSnapshots.id, oldest.id)).run();
+      await db.delete(priceSnapshots).where(eq(priceSnapshots.id, oldest.id));
     }
 
     // Skip duplicates
     const last = recent[0];
     if (last && last.prices === JSON.stringify(snapshot.prices)) return;
 
-    db.insert(priceSnapshots).values({
+    await db.insert(priceSnapshots).values({
       id: crypto.randomUUID(),
       userId,
       timestamp: snapshot.timestamp,
       prices: JSON.stringify(snapshot.prices),
-    }).run();
+    });
   } catch { /* ignore */ }
 }
 
-function compareWithHistory(current: PriceEntry[], userId?: string): PriceEntry[] {
-  const history = userId ? loadHistory(userId) : loadHistoryLegacy();
+async function compareWithHistory(current: PriceEntry[], userId?: string): Promise<PriceEntry[]> {
+  const history = userId ? await loadHistory(userId) : loadHistoryLegacy();
   if (history.length === 0) {
     return current.map((e) => ({ ...e, change: "new" as const }));
   }
@@ -288,7 +286,7 @@ export async function getAllPrices(options?: GetAllPricesOptions): Promise<Monit
   const userId = options?.userId;
   const shopifyPrices = await fetchShopifyPrices(options?.shopifyConnections);
   const mockPrices = fetchMockPrices();
-  const allPrices = compareWithHistory([...shopifyPrices, ...mockPrices], userId);
+  const allPrices = await compareWithHistory([...shopifyPrices, ...mockPrices], userId);
 
   const priceMap: Record<string, number> = {};
   for (const entry of allPrices) {
@@ -298,7 +296,7 @@ export async function getAllPrices(options?: GetAllPricesOptions): Promise<Monit
   const snapshot: PriceSnapshot = { timestamp: new Date().toISOString(), prices: priceMap };
 
   if (userId) {
-    saveSnapshot(userId, snapshot);
+    await saveSnapshot(userId, snapshot);
   } else {
     saveSnapshotLegacy(snapshot);
   }
@@ -319,8 +317,8 @@ export async function getAllPrices(options?: GetAllPricesOptions): Promise<Monit
   };
 }
 
-export function getPriceHistory(productId: string | number, userId?: string): PriceSnapshot[] {
-  const history = userId ? loadHistory(userId) : loadHistoryLegacy();
+export async function getPriceHistory(productId: string | number, userId?: string): Promise<PriceSnapshot[]> {
+  const history = userId ? await loadHistory(userId) : loadHistoryLegacy();
   return history.filter((snap) =>
     Object.keys(snap.prices).some((key) => key.includes(String(productId)))
   );

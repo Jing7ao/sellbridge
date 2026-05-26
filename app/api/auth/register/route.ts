@@ -23,20 +23,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: pw.errors[0] }, { status: 400 });
     }
 
-    const existing = db.select().from(users).where(eq(users.email, email)).get();
-    if (existing) {
+    const existingRows = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (existingRows[0]) {
       return NextResponse.json({ error: "该邮箱已注册" }, { status: 409 });
     }
 
     const id = crypto.randomUUID();
     const passwordHash = bcrypt.hashSync(password, 10);
 
-    db.insert(users).values({
+    await db.insert(users).values({
       id,
       email,
       passwordHash,
       name: name || email.split("@")[0] || undefined,
-    }).run();
+    });
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

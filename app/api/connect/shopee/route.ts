@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const { encrypted, iv, authTag } = encryptToken(credentials);
 
       const id = crypto.randomUUID();
-      db.insert(storeConnections).values({
+      await db.insert(storeConnections).values({
         id,
         userId: auth.userId,
         platform: "shopee",
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         authTag,
         storeName,
         status: "active",
-      }).run();
+      });
 
       return NextResponse.json({
         success: true,

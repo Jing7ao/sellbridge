@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "请求过于频繁" }, { status: 429 });
     }
 
-    const history = loadHistory(auth.userId);
+    const history = await loadHistory(auth.userId);
     return NextResponse.json({ entries: history, total: history.length });
   } catch (err) {
     log.error("History GET error", { error: String(err) });
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const history = addEntry(body, auth.userId);
+    const history = await addEntry(body, auth.userId);
     return NextResponse.json({ entries: history, total: history.length });
   } catch (err) {
     log.error("History POST error", { error: String(err) });
@@ -65,13 +65,13 @@ export async function DELETE(req: NextRequest) {
     const all = url.searchParams.get("all");
 
     if (all === "true") {
-      clearHistory(auth.userId);
+      await clearHistory(auth.userId);
       log.info("History cleared via API", { userId: auth.userId });
       return NextResponse.json({ success: true });
     }
 
     if (id) {
-      const history = deleteEntry(id, auth.userId);
+      const history = await deleteEntry(id, auth.userId);
       return NextResponse.json({ entries: history, total: history.length });
     }
 

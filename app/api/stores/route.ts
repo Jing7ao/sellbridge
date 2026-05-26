@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
     }
 
-    const connections = db
+    const connections = await db
       .select({
         id: storeConnections.id,
         platform: storeConnections.platform,
@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
         createdAt: storeConnections.createdAt,
       })
       .from(storeConnections)
-      .where(eq(storeConnections.userId, auth.userId))
-      .all();
+      .where(eq(storeConnections.userId, auth.userId));
 
     return NextResponse.json({ connections });
   } catch {
@@ -43,12 +42,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "缺少 id 参数" }, { status: 400 });
     }
 
-    const result = db
+    const result = await db
       .delete(storeConnections)
-      .where(and(eq(storeConnections.id, id), eq(storeConnections.userId, auth.userId)))
-      .run();
+      .where(and(eq(storeConnections.id, id), eq(storeConnections.userId, auth.userId)));
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return NextResponse.json({ error: "店铺不存在" }, { status: 404 });
     }
 

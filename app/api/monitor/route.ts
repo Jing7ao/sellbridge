@@ -24,11 +24,10 @@ export async function GET(req: NextRequest) {
     // 查询用户的 Shopify 店铺连接
     const shopifyConnections: Array<{ storeDomain: string; accessToken: string }> = [];
     try {
-      const rows = db
+      const rows = await db
         .select()
         .from(storeConnections)
-        .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")))
-        .all();
+        .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
 
       for (const row of rows) {
         if (row.platform === "shopify") {

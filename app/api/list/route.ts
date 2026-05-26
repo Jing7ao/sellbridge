@@ -53,11 +53,10 @@ export async function POST(req: NextRequest) {
     // 查询用户已连接的所有平台店铺
     const userStores: StoreConnection[] = [];
     try {
-      const rows = db
+      const rows = await db
         .select()
         .from(storeConnections)
-        .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")))
-        .all();
+        .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
 
       for (const row of rows) {
         const creds = JSON.parse(decryptToken(row.encryptedCredentials, row.iv, row.authTag));
@@ -110,7 +109,7 @@ export async function POST(req: NextRequest) {
     };
 
     try {
-      addEntry(historyEntry, auth.userId);
+      await addEntry(historyEntry, auth.userId);
     } catch (err) {
       log.error("Failed to save history entry", { error: String(err) });
     }

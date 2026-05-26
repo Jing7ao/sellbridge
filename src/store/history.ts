@@ -1,5 +1,5 @@
 /**
- * 上架历史持久化 — SQLite DB 存储（按 userId 隔离）
+ * 上架历史持久化 — PostgreSQL DB 存储（按 userId 隔离）
  */
 import { db } from "../db/index";
 import { listingHistory } from "../db/schema";
@@ -27,15 +27,14 @@ export interface HistoryEntry {
 
 const MAX_ENTRIES = 100;
 
-export function loadHistory(userId: string): HistoryEntry[] {
+export async function loadHistory(userId: string): Promise<HistoryEntry[]> {
   try {
-    const rows = db
+    const rows = await db
       .select()
       .from(listingHistory)
       .where(eq(listingHistory.userId, userId))
       .orderBy(desc(listingHistory.createdAt))
-      .limit(MAX_ENTRIES)
-      .all();
+      .limit(MAX_ENTRIES);
 
     return rows.map((row) => ({
       id: row.id,
@@ -52,23 +51,22 @@ export function loadHistory(userId: string): HistoryEntry[] {
   }
 }
 
-export function addEntry(entry: HistoryEntry, userId: string): HistoryEntry[] {
+export async function addEntry(entry: HistoryEntry, userId: string): Promise<HistoryEntry[]> {
   try {
-    const existing = db
+    const existing = await db
       .select({ id: listingHistory.id })
       .from(listingHistory)
       .where(eq(listingHistory.userId, userId))
-      .orderBy(desc(listingHistory.createdAt))
-      .all();
+      .orderBy(desc(listingHistory.createdAt));
 
     if (existing.length >= MAX_ENTRIES) {
       const toDelete = existing.slice(MAX_ENTRIES - 1);
       for (const row of toDelete) {
-        db.delete(listingHistory).where(eq(listingHistory.id, row.id)).run();
+        await db.delete(listingHistory).where(eq(listingHistory.id, row.id));
       }
     }
 
-    db.insert(listingHistory).values({
+    await db.insert(listingHistory).values({
       id: entry.id,
       userId,
       title: entry.title,
@@ -76,7 +74,7 @@ export function addEntry(entry: HistoryEntry, userId: string): HistoryEntry[] {
       platforms: JSON.stringify(entry.platforms),
       results: JSON.stringify(entry.results),
       translationMode: entry.translationMode ?? null,
-    }).run();
+    });
 
     log.info("History entry saved", { id: entry.id, title: entry.title });
   } catch (err) {
@@ -86,18 +84,18 @@ export function addEntry(entry: HistoryEntry, userId: string): HistoryEntry[] {
   return loadHistory(userId);
 }
 
-export function deleteEntry(id: string, userId: string): HistoryEntry[] {
+export async function deleteEntry(id: string, userId: string): Promise<HistoryEntry[]> {
   try {
-    db.delete(listingHistory).where(eq(listingHistory.id, id)).run();
+    await db.delete(listingHistory).where(eq(listingHistory.id, id));
   } catch (err) {
     log.error("Failed to delete history entry", { error: String(err) });
   }
   return loadHistory(userId);
 }
 
-export function clearHistory(userId: string): void {
+export async function clearHistory(userId: string): Promise<void> {
   try {
-    db.delete(listingHistory).where(eq(listingHistory.userId, userId)).run();
+    await db.delete(listingHistory).where(eq(listingHistory.userId, userId));
     log.info("History cleared", { userId });
   } catch (err) {
     log.error("Failed to clear history", { error: String(err) });

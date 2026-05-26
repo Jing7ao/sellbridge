@@ -18,8 +18,8 @@ export async function getAuth(): Promise<{ userId: string; email: string } | nul
   // 验证用户是否仍存在（防止数据库被重建后旧 session 残留）
   if (userId) {
     try {
-      const exists = db.select({ _: users.id }).from(users).where(eq(users.id, userId)).get();
-      if (!exists) return null;
+      const rows = await db.select({ _: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!rows[0]) return null;
     } catch {
       // DB 初始化失败也返回 null
       return null;

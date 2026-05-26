@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++ sqlite-dev
+RUN apk add --no-cache python3 make g++
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -14,8 +14,6 @@ RUN npm run build
 # ---- Production Stage ----
 FROM node:20-alpine AS runner
 WORKDIR /app
-
-RUN apk add --no-cache sqlite-libs
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

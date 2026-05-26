@@ -18,11 +18,12 @@ export const authConfig: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
-          const user = db
+          const rows = await db
             .select()
             .from(users)
             .where(eq(users.email, credentials.email))
-            .get();
+            .limit(1);
+          const user = rows[0];
 
           if (!user) {
             console.log("[auth] no user found for email:", credentials.email);
