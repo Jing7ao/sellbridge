@@ -5,7 +5,6 @@ import * as schema from "./schema";
 const DATABASE_URL = process.env.DATABASE_URL;
 
 let _db: ReturnType<typeof drizzle> | null = null;
-let _initPromise: Promise<void> | null = null;
 
 const INIT_SQL = `
   CREATE TABLE IF NOT EXISTS users (
@@ -60,13 +59,8 @@ const INIT_SQL = `
   );
 `;
 
-function getDb() {
-  if (_db) return _db;
-
-  if (!DATABASE_URL) {
-    throw new Error("[db] DATABASE_URL not set");
-  }
-
+// 模块加载时立即创建连接池并建表，不等首次请求
+if (DATABASE_URL) {
   const isPublicHost = DATABASE_URL.includes("rlwy.net") || DATABASE_URL.includes("railway.app");
 
   const pool = new Pool({
@@ -80,8 +74,7 @@ function getDb() {
     console.error("[db] Pool error:", err.message);
   });
 
-  // 建表 + 预热连接，失败则重试一次
-  _initPromise = pool.query(INIT_SQL).then(() => {
+  pool.query(INIT_SQL).then(() => {
     console.log("[db] Tables initialized");
   }).catch(async (err) => {
     console.error("[db] Auto-create tables failed:", err.message);
@@ -95,16 +88,13 @@ function getDb() {
   });
 
   _db = drizzle(pool, { schema });
-  return _db;
 }
 
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
   get(_target, prop) {
-    const real = getDb();
-    const value = (real as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof value === "function") {
-      return value.bind(real);
-    }
+    if (!_db) throw new Error("[db] DATABASE_URL not set — database unavailable");
+    const value = (_db as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof value === "function") return value.bind(_db);
     return value;
   },
 });
