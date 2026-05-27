@@ -269,9 +269,9 @@ export default function AccountPage() {
                 <Gift className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-800">邀请好友，双方各得 <span className="text-indigo-600 font-bold">50 积分</span></p>
+                <p className="text-sm font-semibold text-slate-800">邀请好友，双方各得 <span className="text-indigo-600 font-bold">50 额度</span></p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  已邀请 <span className="font-bold text-slate-700">{invite.inviteCount}</span> 人，累计获得 <span className="font-bold text-indigo-600">{invite.inviteCredits}</span> 积分
+                  已邀请 <span className="font-bold text-slate-700">{invite.inviteCount}</span> 人，累计获得 <span className="font-bold text-indigo-600">{invite.inviteCredits}</span> 额度
                 </p>
               </div>
             </div>
