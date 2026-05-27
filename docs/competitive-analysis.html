@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SellBridge 竞品分析与突围策略报告</title>
+<style>
+  :root {
+    --primary: #6366f1;
+    --accent: #8b5cf6;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 14px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .container { max-width: 880px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Cover */
+  .cover {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #6366f1 100%);
+    color: #fff;
+    border-radius: 20px;
+    padding: 64px 48px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .cover::after {
+    content: "";
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .cover h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.5px; position: relative; z-index: 1; }
+  .cover .subtitle { font-size: 16px; opacity: 0.85; margin-top: 12px; position: relative; z-index: 1; }
+  .cover .meta { margin-top: 32px; font-size: 13px; opacity: 0.65; position: relative; z-index: 1; }
+  .cover .bridge-icon { position: relative; z-index: 1; margin-bottom: 24px; }
+
+  /* Sections */
+  h2 {
+    font-size: 22px; font-weight: 700; margin: 40px 0 16px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--border);
+    color: #1e1b4b;
+  }
+  h3 { font-size: 16px; font-weight: 600; margin: 24px 0 10px; color: #312e81; }
+  p { margin-bottom: 10px; color: var(--text); }
+  strong { color: #1e1b4b; }
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 99px;
+    font-size: 12px; font-weight: 600;
+  }
+  .tag-green { background: #d1fae5; color: #065f46; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+  .tag-yellow { background: #fef3c7; color: #92400e; }
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  .tag-purple { background: #ede9fe; color: #5b21b6; }
+
+  /* Cards */
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    page-break-inside: avoid;
+  }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  thead th {
+    background: #f1f5f9; padding: 10px 14px; text-align: left;
+    font-weight: 600; border-bottom: 2px solid var(--border);
+  }
+  tbody td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: #fafafa; }
+
+  /* Feature highlight */
+  .highlight-box {
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+    border-left: 4px solid var(--primary);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .highlight-box p { margin: 0; }
+
+  /* Lists */
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 6px; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px; padding-top: 20px;
+    border-top: 2px solid var(--border);
+    text-align: center; font-size: 12px; color: var(--text-muted);
+  }
+
+  /* KPI grid */
+  .kpi-grid { display: flex; gap: 16px; margin: 16px 0 24px; }
+  .kpi {
+    flex: 1; background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; text-align: center;
+  }
+  .kpi .value { font-size: 28px; font-weight: 800; color: var(--primary); }
+  .kpi .label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 8px; top: 4px; bottom: 4px;
+    width: 2px; background: var(--border);
+  }
+  .timeline-item { position: relative; margin-bottom: 20px; padding-left: 28px; }
+  .timeline-item::before {
+    content: ""; position: absolute; left: -18px; top: 6px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--primary);
+  }
+  .timeline-item .day { font-weight: 700; color: #312e81; }
+  .timeline-item .title { font-weight: 600; }
+
+  @media print {
+    body { background: #fff; }
+    .container { max-width: 100%; padding: 20px 32px; }
+    .cover { border-radius: 0; margin: -20px -32px 32px; }
+    .card { box-shadow: none; }
+    @page { margin: 20mm; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ════════════ COVER ════════════ -->
+<div class="cover">
+  <div class="bridge-icon">
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="4" y="20" width="6" height="24" rx="3" fill="rgba(255,255,255,0.9)"/>
+      <rect x="38" y="20" width="6" height="24" rx="3" fill="rgba(255,255,255,0.9)"/>
+      <path d="M10 24 Q24 6 38 24" stroke="rgba(255,255,255,0.85)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="24" cy="15" r="3" fill="rgba(168,85,247,0.9)"/>
+      <circle cx="18" cy="19" r="2" fill="rgba(168,85,247,0.7)"/>
+      <circle cx="30" cy="19" r="2" fill="rgba(168,85,247,0.7)"/>
+    </svg>
+  </div>
+  <h1>SellBridge<br>竞品分析与突围策略</h1>
+  <p class="subtitle">东南亚跨境电商 SaaS · 独立开发者视角 · 2026 年 5 月</p>
+  <p class="meta">版本 v0.3.0 &nbsp;|&nbsp; 制作者：SellBridge Team &nbsp;|&nbsp; 保密</p>
+</div>
+
+<!-- ════════════ 1. 产品现状 ════════════ -->
+<h2>一、SellBridge 产品现状</h2>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="value">4</div><div class="label">接入平台</div></div>
+  <div class="kpi"><div class="value">6</div><div class="label">目标市场</div></div>
+  <div class="kpi"><div class="value">6</div><div class="label">目标语言</div></div>
+  <div class="kpi"><div class="value">5</div><div class="label">功能模块</div></div>
+</div>
+
+<div class="card">
+  <h3>核心功能矩阵</h3>
+  <table>
+    <thead><tr><th>模块</th><th>功能</th><th>状态</th><th>技术实现</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>多平台刊登</strong></td>
+        <td>中文输入 → AI翻译+SEO优化 → 一键上架 4 平台 × 6 市场</td>
+        <td><span class="tag tag-green">已上线</span></td>
+        <td>DeepSeek / Claude 翻译引擎</td>
+      </tr>
+      <tr>
+        <td><strong>跨平台价格监控</strong></td>
+        <td>实时抓取所有连接店铺商品价格，同比环比变化，可视化图表</td>
+        <td><span class="tag tag-green">已上线</span></td>
+        <td>PostgreSQL 存储快照，Recharts 图表</td>
+      </tr>
+      <tr>
+        <td><strong>AI 客服</strong></td>
+        <td>"小桥" AI 助手，36 个预设问题 6 大类，跨境电商知识库</td>
+        <td><span class="tag tag-green">已上线</span></td>
+        <td>DeepSeek / Claude 对话</td>
+      </tr>
+      <tr>
+        <td><strong>店铺连接管理</strong></td>
+        <td>自助连接 Shopify / Lazada / Shopee / TikTok Shop</td>
+        <td><span class="tag tag-green">已上线</span></td>
+        <td>AES-256-GCM 加密存储</td>
+      </tr>
+      <tr>
+        <td><strong>用户系统</strong></td>
+        <td>注册/登录，积分体系，三级定价计划</td>
+        <td><span class="tag tag-green">已上线</span></td>
+        <td>NextAuth JWT, bcrypt</td>
+      </tr>
+      <tr>
+        <td><strong>订单管理</strong></td>
+        <td>跨平台订单汇总、状态跟踪、发货处理</td>
+        <td><span class="tag tag-yellow">待开发</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><strong>库存管理</strong></td>
+        <td>跨平台库存同步、低库存预警、自动上下架</td>
+        <td><span class="tag tag-yellow">待开发</span></td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>技术栈</h3>
+  <p>Next.js 14 (App Router) + TypeScript + PostgreSQL (Drizzle ORM) + Tailwind CSS + Framer Motion + Recharts + NextAuth + Docker 部署至 Railway</p>
+</div>
+
+<!-- ════════════ 2. 竞品分析 ════════════ -->
+<h2>二、竞争格局分析</h2>
+
+<h3>2.1 直接竞品（中国跨境电商 ERP）</h3>
+
+<table>
+  <thead>
+    <tr><th>竞品</th><th>背景</th><th>核心定位</th><th>价格（月费）</th><th>东南亚深度</th><th>AI 能力</th><th>UI/UX</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>店小秘</strong><br><small>Dianxiaomi</small></td>
+      <td>中国 · 深圳<br>2014 年成立</td>
+      <td>全链路 ERP<br>50+ 平台接入</td>
+      <td>免费版<br>付费 199-999 元</td>
+      <td><span class="tag tag-yellow">中等</span></td>
+      <td><span class="tag tag-yellow">后发接入</span></td>
+      <td><span class="tag tag-red">老旧</span></td>
+    </tr>
+    <tr>
+      <td><strong>BigSeller</strong></td>
+      <td>印尼 · 雅加达<br>2020 年成立</td>
+      <td>东南亚多平台<br>刊登+订单管理</td>
+      <td>免费为主</td>
+      <td><span class="tag tag-green">深</span></td>
+      <td><span class="tag tag-yellow">基础</span></td>
+      <td><span class="tag tag-yellow">中等</span></td>
+    </tr>
+    <tr>
+      <td><strong>马帮ERP</strong><br><small>Mabangerp</small></td>
+      <td>中国 · 上海<br>金蝶系</td>
+      <td>中大卖家 ERP<br>仓储物流一体化</td>
+      <td>200-500 元</td>
+      <td><span class="tag tag-yellow">中等</span></td>
+      <td><span class="tag tag-red">弱</span></td>
+      <td><span class="tag tag-red">老旧</span></td>
+    </tr>
+    <tr>
+      <td><strong>通途</strong><br><small>Tongtool</small></td>
+      <td>中国 · 深圳</td>
+      <td>刊登+仓储+物流</td>
+      <td>100-300 元</td>
+      <td><span class="tag tag-yellow">中等</span></td>
+      <td><span class="tag tag-red">弱</span></td>
+      <td><span class="tag tag-red">老旧</span></td>
+    </tr>
+    <tr>
+      <td><strong>领星</strong><br><small>Lingxing</small></td>
+      <td>中国 · 深圳</td>
+      <td>亚马逊卖家 ERP<br>利润分析强</td>
+      <td>199-599 元</td>
+      <td><span class="tag tag-red">弱（欧美为主）</span></td>
+      <td><span class="tag tag-yellow">基础</span></td>
+      <td><span class="tag tag-yellow">中等</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.2 间接竞品（国际多通道集成）</h3>
+
+<table>
+  <thead><tr><th>竞品</th><th>覆盖区域</th><th>价格</th><th>优劣势</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>CedCommerce</strong></td>
+      <td>欧美 + 东南亚部分</td>
+      <td>$9-49/月/通道</td>
+      <td>Shopify 插件生态，但 Shopee/Lazada 集成质量一般</td>
+    </tr>
+    <tr>
+      <td><strong>ChannelEngine</strong></td>
+      <td>欧洲为主</td>
+      <td>€200+/月</td>
+      <td>企业级、贵、不覆盖东南亚核心市场</td>
+    </tr>
+    <tr>
+      <td><strong>Shopify Marketplace Connect</strong></td>
+      <td>欧美</td>
+      <td>免费（Shopify 官方）</td>
+      <td>只支持欧美平台（Amazon, Walmart, eBay），无东南亚平台</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.3 竞争格局总结</h3>
+
+<div class="highlight-box">
+  <p><strong>关键发现：</strong>东南亚跨境 SaaS 赛道的最大竞品是 <strong>店小秘</strong>（全、大、但旧）和 <strong>BigSeller</strong>（免费、深耕印尼）。但两者都不是 AI 原生产品，UI 停留在 5 年前的水平。SellBridge 的窗口：<strong>AI 原生 × 极致体验 × 轻量定价 × 独立开发者速度</strong>。</p>
+</div>
+
+<!-- ════════════ 3. 价值定位 ════════════ -->
+<h2>三、SellBridge 的核心价值再思考</h2>
+
+<div class="card">
+  <h3>"如果平台本身可以上架商品，为什么还需要 SellBridge？"</h3>
+  <p>这是一个产品存在价值的根本性问题。答案是：</p>
+
+  <table>
+    <thead><tr><th>场景</th><th>直接在平台操作</th><th>用 SellBridge</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>在 4 个平台上架 1 个商品</td>
+        <td>登录 4 次，手动填 4 次表单，每次用不同语言</td>
+        <td><strong>输入一次中文，60 秒完成 4 平台上架</strong></td>
+      </tr>
+      <tr>
+        <td>在 4 平台 × 6 市场上架</td>
+        <td>理论上 24 次操作，实际不可能（语言障碍）</td>
+        <td><strong>一次操作，AI 自动翻译 6 种语言 + 本地化 SEO</strong></td>
+      </tr>
+      <tr>
+        <td>查看 4 个平台的订单</td>
+        <td>每天登录 4 个后台，手动汇总</td>
+        <td><strong>一个页面看所有平台订单</strong></td>
+      </tr>
+      <tr>
+        <td>跨平台比价</td>
+        <td>手动切换 4 个 App / 网页，Excel 记录</td>
+        <td><strong>自动聚合、价格变化趋势图、告警</strong></td>
+      </tr>
+      <tr>
+        <td>库存跨平台同步</td>
+        <td>A 平台卖出一件，手动去 B/C/D 平台改库存</td>
+        <td><strong>自动同步，避免超卖</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:12px;"><strong>SellBridge 的价值不是"替代平台功能"，而是"跨平台的聚合层"。</strong>单个平台的后台是完备的，但 <strong>多个平台之间的缝隙</strong>——翻译、数据同步、库存协调、订单汇总——才是 SellBridge 存在的理由。</p>
+</div>
+
+<!-- ════════════ 4. 突围策略 ════════════ -->
+<h2>四、独立开发者的突围策略</h2>
+
+<div class="card">
+  <h3>4.1 竞争策略：不对称竞争</h3>
+  <table>
+    <thead><tr><th>维度</th><th>大厂 ERP（店小秘等）</th><th>SellBridge（你的优势）</th></tr></thead>
+    <tbody>
+      <tr><td><strong>团队规模</strong></td><td>50-200 人</td><td><span class="tag tag-green">1 人 → 极低运营成本</span></td></tr>
+      <tr><td><strong>定价</strong></td><td>199-999 元/月</td><td><span class="tag tag-green">99 元/月 → 1/3 价格</span></td></tr>
+      <tr><td><strong>功能广度</strong></td><td>50+ 模块，面向大卖</td><td><span class="tag tag-blue">5 核心模块，聚焦中小卖</span></td></tr>
+      <tr><td><strong>AI 能力</strong></td><td>后发接入，体验割裂</td><td><span class="tag tag-green">AI 原生，深度整合翻译/SEO/客服</span></td></tr>
+      <tr><td><strong>迭代速度</strong></td><td>需求排期 3 个月</td><td><span class="tag tag-green">24 小时响应 → 周级迭代</span></td></tr>
+      <tr><td><strong>UI/UX</strong></td><td>2018 年水平，功能堆砌</td><td><span class="tag tag-green">2026 现代设计，深色模式，动画</span></td></tr>
+      <tr><td><strong>客户关系</strong></td><td>工单系统，无情感连接</td><td><span class="tag tag-green">创始人直接对话，社区感</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>4.2 产品差异化路线</h3>
+  <ol>
+    <li><strong>AI 翻译做到极致</strong>——让翻译结果不像翻译，像本地人写的。针对泰国/越南/印尼/马来/新加坡市场分别微调 prompt，加入当地电商文案特色（泰国用 emoji + 促销语气、越南用功能罗列、新加坡用简洁商务风）。这是大厂做不到的精细度。</li>
+    <li><strong>"60 秒上架"作为传播钩子</strong>——把这个体验做成可传播的视频："一个中国卖家如何在 60 秒内把商品铺到东南亚 5 国 4 个平台"。在 TikTok / 小红书 / Twitter 上发布。</li>
+    <li><strong>开源平台 Adapter 层</strong>——把 <code>src/adapters/</code> 下的 Lazada/Shopee/TikTok Shop API 封装库开源（MIT 协议）。这会吸引开发者流量，建立技术信任，同时不威胁核心商业价值（商业价值在翻译引擎和业务逻辑层）。</li>
+    <li><strong>不做全链路，做"跨平台中枢"</strong>——不碰 WMS（仓储）、TMS（物流）、财务等重模块。聚焦：刊登 / 订单汇总 / 价格监控 / 库存同步 / AI 客服。五个模块形成"跨平台经营必需"的闭环。</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h3>4.3 定价策略</h3>
+  <table>
+    <thead><tr><th>计划</th><th>价格</th><th>积分</th><th>核心权益</th><th>定位</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Basic</strong></td><td>免费</td><td>50</td><td>AI 翻译、基础客服、1 店铺</td><td>体验获客</td></tr>
+      <tr><td><strong>Pro</strong></td><td>99 元/月</td><td>500</td><td>AI 翻译+SEO、无限客服、5 店铺、价格监控</td><td>主力营收</td></tr>
+      <tr><td><strong>Enterprise</strong></td><td>299 元/月</td><td>2000</td><td>全部功能、无限店铺、自动定价、专属支持</td><td>高价值客户</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:8px;">建议：Pro 计划不要用积分限制——改成按"连接店铺数"和"月刊登数"做梯度。心理上，客户更愿意为"店铺数量"付费而非"积分消耗"。</p>
+</div>
+
+<!-- ════════════ 5. 获客策略 ════════════ -->
+<h2>五、获客与收入路线图</h2>
+
+<div class="card">
+  <h3>5.1 获客渠道优先级</h3>
+  <table>
+    <thead><tr><th>优先级</th><th>渠道</th><th>策略</th><th>预期效果</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-green">P0</span></td>
+        <td><strong>平台应用商店</strong></td>
+        <td>上架到 Shopify App Store、Lazada Partner Center、Shopee Partner Program、TikTok Shop App Store</td>
+        <td>最高转化——用户已在卖货</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-green">P0</span></td>
+        <td><strong>SEO 内容</strong></td>
+        <td>写中文长文："2026 东南亚跨境电商工具推荐"、"Lazada vs Shopee 怎么选"、"TikTok Shop 东南亚入驻指南"</td>
+        <td>长期免费流量，月搜索量数千</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">P1</span></td>
+        <td><strong>社交媒体</strong></td>
+        <td>小红书发"独立开发者出海日记"；Twitter/X 发 build-in-public 内容；抖音发产品 demo 短视频</td>
+        <td>品牌曝光 + 种子用户</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">P1</span></td>
+        <td><strong>社区裂变</strong></td>
+        <td>建"东南亚跨境卖家交流群"（微信/Telegram），邀请 3 人送 50 积分</td>
+        <td>零成本传播</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">P2</span></td>
+        <td><strong>Product Hunt</strong></td>
+        <td>功能完善后上线 Product Hunt，以"AI-powered cross-border listing"为卖点</td>
+        <td>国际曝光 + 海外卖家</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">P2</span></td>
+        <td><strong>跨境社群合作</strong></td>
+        <td>与跨境电商 KOL/培训机构合作，提供专属折扣码</td>
+        <td>精准客户</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>5.2 收入里程碑</h3>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="day">Phase 1 — 现在</div>
+      <div class="title">验证期：完善产品 + 找 10-20 个种子用户免费使用</div>
+      <p>目标：收集反馈，打磨核心流程。观察留存率——用户是否重复使用？哪些功能用得最多？</p>
+    </div>
+    <div class="timeline-item">
+      <div class="day">Phase 2 — 1-2 个月</div>
+      <div class="title">营收启动：开放 Pro 付费，种子用户半价</div>
+      <p>目标：50 个付费用户 × 99 元 = ≈5,000 元/月 MRR。同步接入支付（LemonSqueezy / Stripe）。</p>
+    </div>
+    <div class="timeline-item">
+      <div class="day">Phase 3 — 3-6 个月</div>
+      <div class="title">规模化：全面推广 + Enterprise 计划 + 平台应用商店流量</div>
+      <p>目标：200 付费用户 = ≈20,000 元/月 MRR。可开始考虑全职投入。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 6. 功能拓展 ════════════ -->
+<h2>六、功能拓展：订单管理 + 库存管理</h2>
+
+<div class="card">
+  <h3>6.1 为什么不矛盾</h3>
+  <p>平台上架商品 ≠ 跨平台管理。前者是"创建"，后者是"聚合"。</p>
+  <p>SellBridge 新增订单管理的价值：一个卖家在 Lazada TH、Shopee TH、TikTok Shop TH、Shopify 同时卖货 → 每天登录 4 个后台查订单 → <strong>SellBridge 一个页面汇总所有平台订单</strong>，按状态筛选，批量标记发货。这不是替代平台后台，而是避免 4 个后台之间来回切换。</p>
+  <p>同理库存管理：A 平台卖出一件 → 手动去 B/C/D 平台改库存 → <strong>SellBridge 自动同步库存数据，低库存告警</strong>。超卖是跨境卖家的核心痛点之一。</p>
+</div>
+
+<div class="card">
+  <h3>6.2 订单管理模块设计（轻量版）</h3>
+  <table>
+    <thead><tr><th>功能</th><th>说明</th><th>技术依赖</th></tr></thead>
+    <tbody>
+      <tr><td><strong>订单汇总</strong></td><td>从已连接店铺拉取订单列表，按平台分组显示。支持按状态（待发货/已发货/已取消/退货）筛选</td><td>各平台 Adapter 新增 Order API</td></tr>
+      <tr><td><strong>订单详情</strong></td><td>点击展开：商品信息、收件地址、金额、物流单号</td><td>—</td></tr>
+      <tr><td><strong>状态更新</strong></td><td>标记发货、输入物流单号（单向同步到平台）</td><td>平台发货 API</td></tr>
+      <tr><td><strong>统计概览</strong></td><td>今日订单数、待处理数、各平台订单占比饼图</td><td>Recharts</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px;"><strong>不做的：</strong>退款/纠纷处理（太重，需人工介入）、物流轨迹追踪（可外链到平台物流页面）、发票管理。</p>
+</div>
+
+<div class="card">
+  <h3>6.3 库存管理模块设计（轻量版）</h3>
+  <table>
+    <thead><tr><th>功能</th><th>说明</th><th>技术依赖</th></tr></thead>
+    <tbody>
+      <tr><td><strong>库存总览</strong></td><td>按商品/SKU 展示各平台库存数量，跨平台对比</td><td>各平台商品库存 API</td></tr>
+      <tr><td><strong>低库存预警</strong></td><td>可设置阈值（如 &lt; 10 件），低于阈值时页面标记 + 推送通知</td><td>—</td></tr>
+      <tr><td><strong>一键同步</strong></td><td>手动触发：将某个商品的库存数同步到所有平台</td><td>平台库存更新 API</td></tr>
+      <tr><td><strong>自动同步（未来）</strong></td><td>A 平台产生订单 → 自动扣减 B/C/D 平台库存 → 触发低库存预警</td><td>Webhook + 订单-库存联动</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px;"><strong>不做的（现阶段）：</strong>入库/出库单据管理（WMS 范畴）、多仓库管理、批次/保质期管理。</p>
+</div>
+
+<!-- ════════════ 7. 一周工作计划 ════════════ -->
+<h2>七、接下来一周工作计划（5 月 27 日 - 6 月 2 日）</h2>
+
+<div class="card">
+  <h3>总体目标</h3>
+  <p>这一周的核心主题是：<strong>"从能用 → 好用 → 能卖"</strong>。完成订单管理模块 MVP，修完关键体验问题，准备好面向第一批种子用户的产品状态。</p>
+</div>
+
+<h3>Day 1 — 周三 5/27（今天）</h3>
+<div class="timeline-item">
+  <div class="title">各平台 Order API 适配</div>
+  <p>为 4 个平台 Adapter 新增订单相关 API 方法：</p>
+  <ul>
+    <li><code>src/adapters/shopify/orders.ts</code> — GET /admin/api/2024-01/orders.json（已有 client，最简单）</li>
+    <li><code>src/adapters/lazada/orders.ts</code> — /orders/get（按状态筛选）</li>
+    <li><code>src/adapters/shopee/orders.ts</code> — /order/get_order_list</li>
+    <li><code>src/adapters/tiktok/orders.ts</code> — /order/search</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：4-6 小时</span></p>
+</div>
+
+<h3>Day 2 — 周四 5/28</h3>
+<div class="timeline-item">
+  <div class="title">订单引擎 + API + 前端页面</div>
+  <ul>
+    <li><code>src/engine/order-manager.ts</code> — 聚合多平台订单、排序/筛选/分页逻辑</li>
+    <li><code>app/api/orders/route.ts</code> — GET 拉取订单、PATCH 更新状态</li>
+    <li><code>app/orders/page.tsx</code> — 订单列表页（表格+筛选+统计卡片）</li>
+    <li>侧边栏新增"订单管理"导航项</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：5-7 小时</span></p>
+</div>
+
+<h3>Day 3 — 周五 5/29</h3>
+<div class="timeline-item">
+  <div class="title">库存引擎 + API + 前端页面</div>
+  <ul>
+    <li><code>src/engine/inventory-manager.ts</code> — 跨平台库存聚合、低库存检测、同步逻辑</li>
+    <li><code>app/api/inventory/route.ts</code> — GET 库存总览、POST 触发同步</li>
+    <li><code>app/inventory/page.tsx</code> — 库存总览页（表格+低库存高亮+同步按钮）</li>
+    <li>侧边栏新增"库存管理"导航项</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：5-7 小时</span></p>
+</div>
+
+<h3>Day 4 — 周六 5/30</h3>
+<div class="timeline-item">
+  <div class="title">体验打磨 + Bug 修复</div>
+  <ul>
+    <li>全局加载状态和空状态统一（Skeleton + Empty state 组件规范化）</li>
+    <li>移动端订单/库存页面适配</li>
+    <li>错误处理：API 调用失败的友好提示（平台 Token 过期等）</li>
+    <li>整体走查一遍：注册→连接店铺→刊登→订单→库存→价格监控</li>
+    <li>修复走查中发现的任何体验问题</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：4-5 小时</span></p>
+</div>
+
+<h3>Day 5 — 周日 6/1</h3>
+<div class="timeline-item">
+  <div class="title">品牌视频嵌入 + 定价页完善 + 登录页优化</div>
+  <ul>
+    <li>将 <code>public/brand-video.mp4</code> 嵌入登录页（目前只是静态背景）</li>
+    <li>新增 <code>/pricing</code> 公开定价页（无需登录可访问）</li>
+    <li>账户页完善：积分充值流程 UI（虽然支付还没接）</li>
+    <li>推荐机制实现：生成邀请链接，被邀请人注册双方各得积分</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：4-5 小时</span></p>
+</div>
+
+<h3>Day 6 — 周一 6/2</h3>
+<div class="timeline-item">
+  <div class="title">撰写 SEO 内容 + 社群准备</div>
+  <ul>
+    <li>写 2 篇中文 SEO 文章：<br>
+      （1）"2026 年东南亚跨境电商上架工具推荐与对比"<br>
+      （2）"独立站 + Lazada + Shopee + TikTok Shop：多平台运营实操指南"</li>
+    <li>搭建简单的产品落地页（<code>/landing</code> 或独立 <code>landing.html</code>），包含产品介绍 + 定价 + CTA</li>
+    <li>创建微信/Telegram 卖家交流群，准备群公告和欢迎语</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：3-4 小时</span></p>
+</div>
+
+<h3>Day 7 — 周二 6/3</h3>
+<div class="timeline-item">
+  <div class="title">测试 + 部署 + 发布准备</div>
+  <ul>
+    <li>补充订单管理和库存管理的单元测试</li>
+    <li>全流程回归测试</li>
+    <li>推送 GitHub → Railway 自动部署</li>
+    <li>写一份简短的发布公告（新功能 + 已知问题 + 路线图）</li>
+    <li>发布到 V2EX / 小红书 / Twitter 做第一波曝光</li>
+  </ul>
+  <p><span class="tag tag-purple">工作量：3-4 小时</span></p>
+</div>
+
+<br>
+<div class="highlight-box">
+  <p><strong>一周交付清单：</strong></p>
+  <ol style="margin-top:8px;">
+    <li>✅ 订单管理模块（4 平台订单聚合 + 列表页 + 状态更新）</li>
+    <li>✅ 库存管理模块（跨平台库存总览 + 低库存预警 + 手动同步）</li>
+    <li>✅ 定价页 + 品牌视频嵌入 + 邀请机制</li>
+    <li>✅ 2 篇 SEO 文章 + 产品落地页</li>
+    <li>✅ 全流程回归测试 + Railway 部署</li>
+    <li>✅ 公开曝光（V2EX / 小红书 / Twitter）</li>
+  </ol>
+</div>
+
+<!-- ════════════ FOOTER ════════════ -->
+<div class="footer">
+  <p>SellBridge &copy; 2026 &nbsp;|&nbsp; 东南亚跨境电商 SaaS &nbsp;|&nbsp; 版本 v0.3.0</p>
+  <p>本报告为内部战略文档，仅供 SellBridge 团队使用</p>
+</div>
+
+</div>
+</body>
+</html>
