@@ -145,9 +145,12 @@ export default function AccountPage() {
       {/* 页面标题 */}
       <h1 className="text-2xl font-bold text-slate-900 mb-6">用户中心</h1>
 
-      {/* 新用户欢迎提示 */}
+      {/* 新用户欢迎提示 — 点击滚到定价方案 */}
       {topupCredits <= 200 && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-5 mb-6 shadow-xl shadow-orange-500/20">
+        <button
+          onClick={() => document.getElementById("pricing-plans")?.scrollIntoView({ behavior: "smooth" })}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-5 mb-6 shadow-xl shadow-orange-500/20 w-full text-left cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200"
+        >
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-50" />
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -163,7 +166,7 @@ export default function AccountPage() {
             </div>
             <ChevronRight className="w-5 h-5 text-white/70" />
           </div>
-        </div>
+        </button>
       )}
 
       {/* 三卡片概览 */}
@@ -210,7 +213,7 @@ export default function AccountPage() {
       </div>
 
       {/* 定价方案 */}
-      <section className="mb-8">
+      <section id="pricing-plans" className="mb-8">
         <h2 className="text-lg font-semibold text-slate-800 mb-4">定价方案</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PRICING_PLANS.map((plan) => (
