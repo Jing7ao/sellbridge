@@ -9,6 +9,8 @@ import {
 import dynamic from "next/dynamic";
 import { StatCard } from "../../components/stat-card";
 import { StatsRowSkeleton, TableSkeleton } from "../../components/skeleton";
+import { PageFadeIn, FadeInUp, StaggerChildren, StaggerItem } from "../../components/animations";
+import { toast } from "sonner";
 
 const PriceChart = dynamic(() => import("../../components/price-chart"), {
   ssr: false,
@@ -170,16 +172,18 @@ export default function MonitorPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8 animate-fade-in">
+    <PageFadeIn className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">价格监控</h2>
-          <p className="text-slate-500 text-sm">跨平台商品价格追踪与对比</p>
-        </div>
-        <button onClick={fetchData} disabled={loading} className="btn-ghost">
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          刷新
-        </button>
+        <FadeInUp>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">价格监控</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">跨平台商品价格追踪与对比</p>
+        </FadeInUp>
+        <FadeInUp delay={0.1}>
+          <button onClick={fetchData} disabled={loading} className="btn-ghost dark:bg-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            刷新
+          </button>
+        </FadeInUp>
       </div>
 
       {/* 搜索 + 筛选 */}
@@ -308,30 +312,12 @@ export default function MonitorPage() {
       {data && data.snapshot.totalProducts > 0 && (
         <>
           {/* 摘要栏 */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 animate-fade-in-up">
-            <StatCard
-              icon={<Package className="w-5 h-5" />}
-              label="监控商品" value={data.snapshot.totalProducts}
-              gradient={STAT_GRADIENTS.blue}
-            />
-            <StatCard
-              icon={<TrendingUp className="w-5 h-5" />}
-              label="涨价" value={data.snapshot.upCount}
-              gradient={STAT_GRADIENTS.red}
-            />
-            <StatCard
-              icon={<TrendingDown className="w-5 h-5" />}
-              label="降价" value={data.snapshot.downCount}
-              gradient={STAT_GRADIENTS.emerald}
-            />
-            <StatCard
-              icon={<DollarSign className="w-5 h-5" />}
-              label="最后更新"
-              value={new Date(data.snapshot.timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
-              gradient={STAT_GRADIENTS.purple}
-              isTime
-            />
-          </div>
+          <StaggerChildren className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            <StaggerItem><StatCard icon={<Package className="w-5 h-5" />} label="监控商品" value={data.snapshot.totalProducts} gradient={STAT_GRADIENTS.blue} /></StaggerItem>
+            <StaggerItem><StatCard icon={<TrendingUp className="w-5 h-5" />} label="涨价" value={data.snapshot.upCount} gradient={STAT_GRADIENTS.red} /></StaggerItem>
+            <StaggerItem><StatCard icon={<TrendingDown className="w-5 h-5" />} label="降价" value={data.snapshot.downCount} gradient={STAT_GRADIENTS.emerald} /></StaggerItem>
+            <StaggerItem><StatCard icon={<DollarSign className="w-5 h-5" />} label="最后更新" value={new Date(data.snapshot.timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} gradient={STAT_GRADIENTS.purple} isTime /></StaggerItem>
+          </StaggerChildren>
 
           {/* 筛选结果提示 */}
           {(search || selectedCategory || selectedPlatforms.size > 0) && (
@@ -427,6 +413,6 @@ export default function MonitorPage() {
           )}
         </>
       )}
-    </div>
+    </PageFadeIn>
   );
 }

@@ -5,6 +5,7 @@ import {
   Plus, Trash2, Globe, Send, CheckCircle, XCircle, Loader2,
   ImagePlus, Package, Tag, Sparkles, Ruler, List,
 } from "lucide-react";
+import { PageFadeIn, FadeInUp } from "../components/animations";
 
 const CATEGORIES = [
   "手机及配件", "电脑及办公", "消费电子", "家电",
@@ -159,7 +160,7 @@ export default function Home() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
+    <PageFadeIn className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
       {/* 欢迎横幅 */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 p-6 mb-8 shadow-xl shadow-indigo-500/20">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
@@ -489,6 +490,6 @@ export default function Home() {
           </div>
         </div>
       )}
-    </div>
+    </PageFadeIn>
   );
 }

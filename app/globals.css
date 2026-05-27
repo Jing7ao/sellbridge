@@ -17,8 +17,24 @@
 
 body {
   @apply bg-slate-50 text-slate-800 antialiased;
+  @apply dark:bg-slate-950 dark:text-slate-200;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+
+/* ── 深色模式全局覆盖 ── */
+.dark .bg-white { @apply bg-slate-900; }
+.dark .bg-slate-50 { @apply bg-slate-950; }
+.dark .border-slate-100 { @apply border-white/5; }
+.dark .border-slate-200 { @apply border-white/10; }
+.dark .text-slate-800 { @apply text-slate-100; }
+.dark .text-slate-700 { @apply text-slate-200; }
+.dark .text-slate-600 { @apply text-slate-300; }
+.dark .text-slate-500 { @apply text-slate-400; }
+.dark .text-slate-400 { @apply text-slate-500; }
+.dark .hover\:bg-slate-50:hover { @apply hover:bg-white/5; }
+.dark .hover\:bg-slate-100:hover { @apply hover:bg-white/10; }
+.dark .bg-slate-100 { @apply bg-white/5; }
+.dark .shadow-sm { @apply shadow-black/20; }
 
 /* ── 自定义滚动条 ── */
 ::-webkit-scrollbar {
