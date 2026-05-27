@@ -181,6 +181,18 @@ export default function PricingPage() {
           免费注册
         </Link>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-100 dark:border-white/5 py-6">
+        <div className="max-w-6xl mx-auto px-6 text-center text-xs text-slate-400 space-y-1">
+          <p>SellBridge &copy; 2026</p>
+          <p>
+            <Link href="/terms" className="hover:text-slate-500 underline underline-offset-2">用户协议</Link>
+            <span className="mx-2">·</span>
+            <Link href="/privacy" className="hover:text-slate-500 underline underline-offset-2">隐私政策</Link>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

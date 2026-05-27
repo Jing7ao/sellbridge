@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles, Check, X, Gift } from "lucide-react";
@@ -147,7 +148,7 @@ export default function LoginPage() {
             {inviteCode && mode === "register" && (
               <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-100 mb-4 animate-fade-in">
                 <Gift className="w-4 h-4 text-indigo-500 shrink-0" />
-                <p className="text-xs text-indigo-700 font-medium">通过邀请链接注册，你和邀请人各得 <span className="font-bold">50 积分</span></p>
+                <p className="text-xs text-indigo-700 font-medium">通过邀请链接注册，你和邀请人各得 <span className="font-bold">50 额度</span></p>
               </div>
             )}
 
@@ -317,6 +318,13 @@ export default function LoginPage() {
             >
               {mode === "login" ? "立即注册" : "去登录"}
             </button>
+          </p>
+
+          <p className="text-center text-[10px] text-slate-300 mt-3">
+            注册即表示同意
+            <Link href="/terms" className="text-slate-400 hover:text-slate-500 underline underline-offset-2">用户协议</Link>
+            和
+            <Link href="/privacy" className="text-slate-400 hover:text-slate-500 underline underline-offset-2">隐私政策</Link>
           </p>
         </div>
       </div>

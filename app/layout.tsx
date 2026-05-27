@@ -118,6 +118,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-[10px] text-slate-500">v0.3.0</span>
             <ThemeToggle />
           </div>
+          <div className="flex items-center gap-2 px-3 text-[10px] text-slate-500">
+            <Link href="/terms" className="hover:text-slate-300 transition-colors">用户协议</Link>
+            <span className="text-slate-600">·</span>
+            <Link href="/privacy" className="hover:text-slate-300 transition-colors">隐私政策</Link>
+          </div>
 
           {session?.user && (
             <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-white/5 backdrop-blur border border-white/5">
