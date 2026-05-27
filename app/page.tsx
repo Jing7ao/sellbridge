@@ -517,12 +517,10 @@ export default function Home() {
             </div>
           )}
 
-          {/* 关税信息 */}
+          {/* 关税信息：Form E 突出展示 */}
           {compliance && compliance.tariffs && compliance.tariffs.length > 0 && (
             <div className="space-y-2 mb-3">
-              <p className="text-xs font-semibold text-slate-500">关税与增值税预估</p>
-
-              {/* Form E 提醒 */}
+              {/* Form E 提醒 — 始终可见 */}
               {compliance.formENote && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm border bg-green-50 border-green-200 text-green-800">
                   <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
@@ -533,39 +531,37 @@ export default function Home() {
                 </div>
               )}
 
-              {/* 各市场关税表 */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-white/5">
-                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">市场</th>
-                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">ACFTA 税率</th>
-                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">无 Form E</th>
-                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">增值税</th>
-                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">免税额</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {compliance.tariffs.map((t) => (
-                      <tr key={t.market}>
-                        <td className="border border-slate-200 dark:border-white/10 p-1.5 font-medium">{t.label}</td>
-                        <td className="border border-slate-200 dark:border-white/10 p-1.5 text-emerald-700">{t.acftaRate}</td>
-                        <td className="border border-slate-200 dark:border-white/10 p-1.5 text-red-600">{t.mfnRate}</td>
-                        <td className="border border-slate-200 dark:border-white/10 p-1.5">{t.vatRate}</td>
-                        <td className="border border-slate-200 dark:border-white/10 p-1.5">{t.deMinimis}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* 敏感品类明细 */}
-              <details className="mt-1">
-                <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-500">各市场敏感品类关税明细</summary>
-                <div className="mt-2 space-y-2">
+              {/* 关税表 + 敏感品类 — 折叠区，默认关闭 */}
+              <details>
+                <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-500">查看各市场关税明细（ACFTA / MFN / 增值税 / 敏感品类）</summary>
+                <div className="mt-2 space-y-3">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-white/5">
+                          <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">市场</th>
+                          <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">ACFTA 税率</th>
+                          <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">无 Form E</th>
+                          <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">增值税</th>
+                          <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">免税额</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {compliance.tariffs.map((t) => (
+                          <tr key={t.market}>
+                            <td className="border border-slate-200 dark:border-white/10 p-1.5 font-medium">{t.label}</td>
+                            <td className="border border-slate-200 dark:border-white/10 p-1.5 text-emerald-700">{t.acftaRate}</td>
+                            <td className="border border-slate-200 dark:border-white/10 p-1.5 text-red-600">{t.mfnRate}</td>
+                            <td className="border border-slate-200 dark:border-white/10 p-1.5">{t.vatRate}</td>
+                            <td className="border border-slate-200 dark:border-white/10 p-1.5">{t.deMinimis}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                   {compliance.tariffs.map((t) => (
                     <div key={`sens-${t.market}`} className="text-xs">
-                      <p className="font-medium text-slate-600 dark:text-slate-300 mb-1">{t.label}</p>
+                      <p className="font-medium text-slate-600 dark:text-slate-300 mb-1">{t.label} 敏感品类</p>
                       <div className="grid grid-cols-2 gap-0.5">
                         {t.sensitiveCategories.map((sc) => (
                           <div key={sc.category} className="px-2 py-1 bg-slate-50 dark:bg-white/5 rounded flex justify-between">

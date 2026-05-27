@@ -4,6 +4,7 @@
  * 针对 Lazada/Shopee/TikTok Shop 标题 SEO 优化
  */
 import { MarketCode, LAZADA_MARKETS } from "../adapters/lazada/client.js";
+import { TRADEMARK_SENSITIVE_KEYWORDS } from "./compliance.js";
 
 // ── 语言映射 ──
 
@@ -47,6 +48,20 @@ export interface TranslateOptions {
  * 2. 标题适配各平台字数限制
  * 3. 自动提取当地买家搜索高频词做关键词标签
  */
+/** 构建商标规避约束（取最关键的品牌词，避免 prompt 过长） */
+function buildTrademarkConstraint(): string {
+  const topBrands = TRADEMARK_SENSITIVE_KEYWORDS.map((t) => `"${t.keyword}"`).join("、");
+  return [
+    "=== 商标合规要求（重要）===",
+    `翻译时严禁在标题和描述中使用以下已注册商标名称：${topBrands}。`,
+    "使用通用描述词替代品牌名。例如：",
+    '- 不要说 "iPhone case"，说 "手机保护壳" 的本地语言翻译',
+    '- 不要说 "Nike shoes"，说 "运动鞋" 的本地语言翻译',
+    '- 不要说 "AirPods compatible"，说 "无线耳机兼容" 的本地语言翻译',
+    "如果原文商品名称暗示某品牌（如'苹果手机壳''三星充电器'），翻译时必须去掉品牌暗示，仅描述商品本身的品类和功能。",
+  ].join("\n");
+}
+
 function buildFallbackTranslation(title: string, keywords: string[], market: MarketCode) {
   const langCode = MARKET_TO_LANG[market]?.code ?? "en";
   const suffix = langCode !== "en" ? ` (${langCode})` : "";
@@ -88,6 +103,8 @@ export async function translateProduct(options: TranslateOptions): Promise<Trans
     `2. 描述: 150-500 字符，自然流畅的营销语言，突出卖点`,
     `3. 关键词标签: 5-10 个当地语言的高频搜索关键词`,
     `4. 仅输出 JSON，不要其他内容`,
+    "",
+    buildTrademarkConstraint(),
     "",
     `=== 输入 ===`,
     `商品名称: ${options.title}`,
