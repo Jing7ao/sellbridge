@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Menu, X, LogOut, Package, History, BarChart3,
-  Bot, Settings, UserCircle,
+  Bot, Settings, UserCircle, ShoppingBag, Boxes,
 } from "lucide-react";
 import { SessionProvider, useSession, signOut } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
@@ -85,6 +85,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <NavItem
             href="/history" icon={<History className="w-4 h-4" />}
             label="上架记录" active={pathname === "/history"}
+          />
+          <NavItem
+            href="/orders" icon={<ShoppingBag className="w-4 h-4" />}
+            label="订单管理" active={pathname === "/orders"}
+          />
+          <NavItem
+            href="/inventory" icon={<Boxes className="w-4 h-4" />}
+            label="库存管理" active={pathname === "/inventory"}
           />
           <NavItem
             href="/monitor" icon={<BarChart3 className="w-4 h-4" />}
