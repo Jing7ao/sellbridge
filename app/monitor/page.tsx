@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   TrendingUp, TrendingDown, DollarSign, Package, RefreshCw,
   Loader2, ChevronDown, ChevronUp, Search, BarChart3, List, X,
+  Store, ArrowRight,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { StatCard } from "../../components/stat-card";
@@ -285,7 +286,24 @@ export default function MonitorPage() {
         </div>
       )}
 
-      {data && (
+      {data && data.snapshot.totalProducts === 0 ? (
+        // 无连接店铺时的空状态引导
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center animate-fade-in-up">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center mx-auto mb-5">
+            <Store className="w-8 h-8 text-indigo-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">连接店铺，获取价格信息</h3>
+          <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+            目前还没有连接任何电商店铺。前往设置页面连接 Shopify / Lazada / Shopee / TikTok Shop，即可实时监控各平台商品价格。
+          </p>
+          <a
+            href="/settings"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-medium hover:from-indigo-600 hover:to-violet-600 transition-all shadow-sm"
+          >
+            前往连接店铺 <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+      ) : (
         <>
           {/* 摘要栏 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 animate-fade-in-up">
