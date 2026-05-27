@@ -70,7 +70,7 @@ const PLANS = [
 
 const FAQS = [
   {
-    q: "什么是"上架额度"？",
+    q: "什么是「上架额度」？",
     a: "每次将一个商品发布到一个平台的一个市场，消耗 1 个上架额度。例如将一个商品发布到 Lazada TH、Shopee TH、TikTok Shop TH 三个平台 × 市场组合，消耗 3 个额度。",
   },
   {

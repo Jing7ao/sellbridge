@@ -2,10 +2,14 @@
  * 跨平台库存管理引擎
  * 复用各平台 listProducts() 获取库存，聚合对比 + 低库存预警
  */
-import { ShopifyClient, ShopifyProductService } from "../adapters/shopify/products.js";
-import { LazadaClient, LazadaProductService } from "../adapters/lazada/products.js";
-import { ShopeeClient, ShopeeProductService } from "../adapters/shopee/products.js";
-import { TiktokClient, TiktokProductService } from "../adapters/tiktok/products.js";
+import { ShopifyClient } from "../adapters/shopify/client.js";
+import { ShopifyProductService } from "../adapters/shopify/products.js";
+import { LazadaClient } from "../adapters/lazada/client.js";
+import { LazadaProductService } from "../adapters/lazada/products.js";
+import { ShopeeClient } from "../adapters/shopee/client.js";
+import { ShopeeProductService } from "../adapters/shopee/products.js";
+import { TiktokClient } from "../adapters/tiktok/client.js";
+import { TiktokProductService } from "../adapters/tiktok/products.js";
 
 export interface UnifiedInventoryItem {
   productId: string;
