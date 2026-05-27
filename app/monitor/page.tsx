@@ -286,7 +286,7 @@ export default function MonitorPage() {
         </div>
       )}
 
-      {data && data.snapshot.totalProducts === 0 ? (
+      {data && data.snapshot.totalProducts === 0 && (
         // 无连接店铺时的空状态引导
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center animate-fade-in-up">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center mx-auto mb-5">
@@ -303,7 +303,9 @@ export default function MonitorPage() {
             前往连接店铺 <ArrowRight className="w-4 h-4" />
           </a>
         </div>
-      ) : (
+      )}
+
+      {data && data.snapshot.totalProducts > 0 && (
         <>
           {/* 摘要栏 */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 animate-fade-in-up">
