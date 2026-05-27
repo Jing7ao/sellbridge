@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Plus, Trash2, Globe, Send, CheckCircle, XCircle, Loader2,
-  ImagePlus, Package, Tag, Sparkles, Ruler, List,
+  ImagePlus, Package, Tag, Sparkles, Ruler, List, AlertTriangle,
 } from "lucide-react";
 import { PageFadeIn, FadeInUp } from "../components/animations";
 
@@ -60,6 +60,8 @@ export default function Home() {
   const [keywords, setKeywords] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ListingResult[] | null>(null);
+  const [compliance, setCompliance] = useState<{ warnings: { type: string; severity: string; message: string; market: string; detail?: string }[] } | null>(null);
+  const [checkingCompliance, setCheckingCompliance] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -407,6 +409,82 @@ export default function Home() {
           })}
         </div>
       </div>
+
+      {/* 合规检查 */}
+      {title.trim() && selectedMarkets.size > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5 animate-fade-in-up stagger-3">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              合规检查
+              <span className="text-xs font-normal text-slate-400">（商标 / 禁售品类 / 市场准入）</span>
+            </h3>
+            <button
+              onClick={async () => {
+                setCheckingCompliance(true);
+                try {
+                  const resp = await fetch("/api/compliance", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title,
+                      description,
+                      category,
+                      markets: Array.from(selectedMarkets),
+                    }),
+                  });
+                  const data = await resp.json();
+                  setCompliance(data);
+                } catch { /* ignore */ }
+                finally { setCheckingCompliance(false); }
+              }}
+              disabled={checkingCompliance}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+            >
+              {checkingCompliance ? "检查中..." : compliance ? "重新检查" : "点击检查"}
+            </button>
+          </div>
+
+          {compliance && compliance.warnings.length === 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-sm text-emerald-700">
+              <CheckCircle className="w-4 h-4" />
+              未发现明显风险（本检查仅供参考，不构成法律意见）
+            </div>
+          )}
+
+          {compliance && compliance.warnings.length > 0 && (
+            <div className="space-y-2">
+              {compliance.warnings.map((w, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-sm border ${
+                    w.severity === "high"
+                      ? "bg-red-50 border-red-100 text-red-800"
+                      : w.severity === "medium"
+                      ? "bg-amber-50 border-amber-100 text-amber-800"
+                      : "bg-blue-50 border-blue-100 text-blue-700"
+                  }`}
+                >
+                  <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${
+                    w.severity === "high" ? "text-red-500" : w.severity === "medium" ? "text-amber-500" : "text-blue-500"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{w.message}</p>
+                    {w.detail && <p className="text-xs opacity-75 mt-0.5">{w.detail}</p>}
+                    <p className="text-xs mt-1 opacity-60">涉及市场: {w.market}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!compliance && (
+            <p className="text-xs text-slate-400">
+              点击上方按钮检查商品是否存在商标侵权、禁售品类、市场准入等合规风险
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 提交按钮 */}
       <button
