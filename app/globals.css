@@ -22,19 +22,19 @@ body {
 }
 
 /* ── 深色模式全局覆盖 ── */
-.dark .bg-white { @apply bg-slate-900; }
-.dark .bg-slate-50 { @apply bg-slate-950; }
-.dark .border-slate-100 { @apply border-white/5; }
-.dark .border-slate-200 { @apply border-white/10; }
-.dark .text-slate-800 { @apply text-slate-100; }
-.dark .text-slate-700 { @apply text-slate-200; }
-.dark .text-slate-600 { @apply text-slate-300; }
-.dark .text-slate-500 { @apply text-slate-400; }
-.dark .text-slate-400 { @apply text-slate-500; }
-.dark .hover\:bg-slate-50:hover { @apply hover:bg-white/5; }
-.dark .hover\:bg-slate-100:hover { @apply hover:bg-white/10; }
-.dark .bg-slate-100 { @apply bg-white/5; }
-.dark .shadow-sm { @apply shadow-black/20; }
+.dark .bg-white { background-color: rgb(15 23 42); }
+.dark .bg-slate-50 { background-color: rgb(2 6 23); }
+.dark .border-slate-100 { border-color: rgb(255 255 255 / 0.05); }
+.dark .border-slate-200 { border-color: rgb(255 255 255 / 0.1); }
+.dark .text-slate-800 { color: rgb(241 245 249); }
+.dark .text-slate-700 { color: rgb(226 232 240); }
+.dark .text-slate-600 { color: rgb(203 213 225); }
+.dark .text-slate-500 { color: rgb(148 163 184); }
+.dark .text-slate-400 { color: rgb(100 116 139); }
+.dark .hover\:bg-slate-50:hover { background-color: rgb(255 255 255 / 0.05); }
+.dark .hover\:bg-slate-100:hover { background-color: rgb(255 255 255 / 0.1); }
+.dark .bg-slate-100 { background-color: rgb(255 255 255 / 0.05); }
+.dark .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.2); }
 
 /* ── 自定义滚动条 ── */
 ::-webkit-scrollbar {
