@@ -5,6 +5,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles, Check, X, Gift } from "lucide-react";
+import { BrandIcon } from "../components/brand-logo";
 import { checkPassword } from "../../src/auth/password";
 
 const FEATURES = [
@@ -99,9 +100,7 @@ export default function LoginPage() {
         {/* 品牌内容叠加层 */}
         <div className="relative z-10 max-w-xl px-12">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center shadow-xl shadow-indigo-500/30">
-              <Globe className="w-6 h-6 text-white" />
-            </div>
+            <BrandIcon size={48} />
             <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">
                 <span className="gradient-text">SellBridge</span>
@@ -134,10 +133,10 @@ export default function LoginPage() {
       {/* 右侧表单区 — 1/3 */}
       <div className="flex items-center justify-center bg-slate-50 px-6">
         <div className="w-full max-w-sm">
-          {/* 品牌标识 — 与左侧同风格但不同排版 */}
+          {/* 品牌标识 — 与左侧同品牌图标 */}
           <div className="text-center mb-6">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/20">
-              <Globe className="w-5 h-5 text-white" />
+            <div className="flex justify-center mb-3">
+              <BrandIcon size={44} />
             </div>
             <h1 className="text-xl font-bold text-slate-800 tracking-tight">SellBridge</h1>
             <p className="text-xs text-slate-400 mt-1">东南亚跨境电商管理平台</p>

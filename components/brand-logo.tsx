@@ -1,6 +1,6 @@
 /**
- * SellBridge 品牌图标 — 原创 SVG，无版权风险
- * 概念：桥梁连接全球市场
+ * SellBridge 品牌图标 — 原创 SVG
+ * 概念：渐变圆角方形 + 白色 S 字母
  */
 export function BrandIcon({ size = 32 }: { size?: number }) {
   return (
@@ -12,26 +12,19 @@ export function BrandIcon({ size = 32 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-label="SellBridge"
     >
-      {/* 桥墩左 */}
-      <rect x="4" y="24" width="8" height="36" rx="3" fill="url(#bg)" />
-      {/* 桥墩右 */}
-      <rect x="52" y="24" width="8" height="36" rx="3" fill="url(#bg)" />
-      {/* 桥面弧线 */}
+      {/* 圆角方形背景 */}
+      <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#sb-bg)" />
+      {/* S 字母 */}
       <path
-        d="M8 28 Q32 4 56 28"
-        stroke="url(#bg)"
+        d="M20 20 C20 16 44 16 44 20 C44 26 20 24 20 30 C20 36 44 38 44 44 C44 48 20 48 20 44"
+        stroke="white"
         strokeWidth="6"
         strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
       />
-      {/* 全球节点 */}
-      <circle cx="20" cy="44" r="5" fill="url(#bg)" opacity="0.6" />
-      <circle cx="44" cy="44" r="5" fill="url(#bg)" opacity="0.6" />
-      <circle cx="44" cy="52" r="3" fill="url(#bg)" opacity="0.35" />
-      <circle cx="20" cy="52" r="3" fill="url(#bg)" opacity="0.35" />
-      {/* 渐变定义 */}
       <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+        <linearGradient id="sb-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
           <stop stopColor="#6366f1" />
           <stop offset="1" stopColor="#8b5cf6" />
         </linearGradient>
