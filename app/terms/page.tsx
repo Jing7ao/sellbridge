@@ -119,7 +119,7 @@ export default function TermsPage() {
         <p>本协议适用中华人民共和国法律。因本协议引起的争议，双方应友好协商解决；协商不成的，任何一方可将争议提交至开发者所在地有管辖权的人民法院诉讼解决。</p>
 
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">十三、联系方式</h2>
-        <p>如对本协议有任何疑问或需要注销账户，请联系：sellbridge@outlook.com</p>
+        <p>如对本协议有任何疑问或需要注销账户，请联系：1363929257@qq.com</p>
       </article>
     </div>
   );

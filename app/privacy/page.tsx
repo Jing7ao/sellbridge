@@ -69,7 +69,7 @@ export default function PrivacyPage() {
 
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">九、联系方式</h2>
         <p>如对本隐私政策有任何疑问或行使您的数据权利，请通过以下方式联系我们：</p>
-        <p>邮箱：sellbridge@outlook.com</p>
+        <p>邮箱：1363929257@qq.com</p>
       </article>
     </div>
   );
