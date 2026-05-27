@@ -1,14 +1,21 @@
 /**
  * 价格监控引擎
  * 跨平台价格查询 + 历史快照 + 涨跌对比
+ *
+ * 数据来源：用户已连接的店铺（Shopify / Lazada / Shopee / TikTok Shop）
+ * 无连接时返回空列表，不再使用模拟数据。
  */
 import { ShopifyClient } from "../adapters/shopify/client.js";
 import { ShopifyProductService } from "../adapters/shopify/products.js";
+import { LazadaClient, type MarketCode as LazadaMarketCode } from "../adapters/lazada/client.js";
+import { LazadaProductService } from "../adapters/lazada/products.js";
+import { ShopeeClient, type ShopeeMarketCode } from "../adapters/shopee/client.js";
+import { ShopeeProductService } from "../adapters/shopee/products.js";
+import { TiktokClient, type TiktokMarketCode } from "../adapters/tiktok/client.js";
+import { TiktokProductService } from "../adapters/tiktok/products.js";
 import { db } from "../db/index.js";
 import { priceSnapshots } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
-import fs from "node:fs";
-import path from "node:path";
 import crypto from "node:crypto";
 
 // ── 类型 ──
@@ -43,149 +50,166 @@ interface PriceSnapshot {
   prices: Record<string, number>;
 }
 
-interface ShopifyCredentials {
-  storeDomain: string;
-  accessToken: string;
-}
-
-const HISTORY_FILE = path.join(process.cwd(), "data", "price-history.json");
-
-const PLATFORM_META: Record<string, string> = {
-  shopify: "Shopify",
-  lazada: "Lazada",
-  shopee: "Shopee",
-  tiktok: "TikTok Shop",
-};
-
 const MARKET_META: Record<string, string> = {
   th: "泰国", vn: "越南", id: "印尼",
   my: "马来西亚", ph: "菲律宾", sg: "新加坡",
 };
 
-// ── Shopify 价格查询 ──
+// ── 凭据类型 ──
 
-async function fetchShopifyPrices(connections?: ShopifyCredentials[]): Promise<PriceEntry[]> {
-  const clients: { client: ShopifyClient; market: string }[] = [];
+export interface ShopifyCredentials {
+  storeDomain: string;
+  accessToken: string;
+}
 
-  if (connections?.length) {
-    for (const c of connections) {
-      clients.push({
-        client: new ShopifyClient({ storeDomain: c.storeDomain, accessToken: c.accessToken }),
-        market: "sg",
-      });
-    }
-  } else {
-    const domain = process.env.SHOPIFY_STORE_DOMAIN;
-    const token = process.env.SHOPIFY_ACCESS_TOKEN;
-    if (domain && token) {
-      clients.push({
-        client: new ShopifyClient({ storeDomain: domain, accessToken: token }),
-        market: "sg",
-      });
-    }
-  }
+export interface LazadaCredentials {
+  appKey: string;
+  appSecret: string;
+  accessToken: string;
+  market: string;
+}
 
+export interface ShopeeCredentials {
+  partnerId: number;
+  partnerKey: string;
+  shopId: number;
+  accessToken: string;
+  market: string;
+}
+
+export interface TiktokCredentials {
+  appKey: string;
+  appSecret: string;
+  accessToken: string;
+  shopCipher?: string;
+  market: string;
+}
+
+// ── 各平台价格查询 ──
+
+async function fetchShopifyPrices(connections: ShopifyCredentials[]): Promise<PriceEntry[]> {
   const allEntries: PriceEntry[] = [];
-  for (const { client, market } of clients) {
+  for (const c of connections) {
+    const client = new ShopifyClient({ storeDomain: c.storeDomain, accessToken: c.accessToken });
     const service = new ShopifyProductService(client);
     try {
       const products = await service.listProducts(50);
-      allEntries.push(...products.flatMap((p) =>
-        p.variants.map((v) => ({
-          productId: p.id,
-          title: p.title,
-          platform: "shopify",
-          platformName: "Shopify",
-          market,
-          marketName: "全球",
-          price: parseFloat(v.price) || 0,
-          compareAtPrice: v.compare_at_price ? parseFloat(v.compare_at_price) : undefined,
-          change: "same" as const,
-          lastUpdated: new Date().toISOString(),
-        }))
-      ));
+      for (const p of products) {
+        for (const v of p.variants) {
+          allEntries.push({
+            productId: p.id,
+            title: p.title,
+            platform: "shopify",
+            platformName: "Shopify",
+            market: "sg",
+            marketName: "全球",
+            price: parseFloat(v.price) || 0,
+            compareAtPrice: v.compare_at_price ? parseFloat(v.compare_at_price) : undefined,
+            change: "same",
+            lastUpdated: new Date().toISOString(),
+          });
+        }
+      }
     } catch { /* skip unreachable stores */ }
   }
-
   return allEntries;
 }
 
-// ── 模拟价格 ──
-
-function fetchMockPrices(): PriceEntry[] {
-  const mockProducts = [
-    // 耳机/音频
-    { id: 1001, title: "无线蓝牙耳机 TWS-500 ANC", basePrice: 99 },
-    { id: 1011, title: "便携蓝牙音箱 低音炮", basePrice: 79 },
-    // 充电/电源
-    { id: 1002, title: "USB-C 快充头 GaN 65W", basePrice: 45 },
-    { id: 1012, title: "磁吸无线充电宝 10000mAh", basePrice: 69 },
-    // 手机配件
-    { id: 1003, title: "手机支架 铝合金 可折叠", basePrice: 15 },
-    { id: 1013, title: "钢化膜 iPhone 防窥屏", basePrice: 8 },
-    // 电脑/办公
-    { id: 1004, title: "机械键盘 87键 红轴 RGB", basePrice: 159 },
-    { id: 1014, title: "无线鼠标 人体工学 静音", basePrice: 49 },
-    // 家电/日用
-    { id: 1005, title: "迷你手持吸尘器 无线充电", basePrice: 129 },
-    { id: 1015, title: "便携果汁机 USB充电", basePrice: 55 },
-    // 服饰/配饰
-    { id: 1006, title: "运动手表 防水 心率监测", basePrice: 199 },
-    { id: 1016, title: "偏光太阳镜 防紫外线", basePrice: 35 },
-    // 美妆/个护
-    { id: 1007, title: "电动牙刷 声波 IPX7防水", basePrice: 89 },
-    { id: 1017, title: "LED化妆镜 三色补光", basePrice: 42 },
-    // 母婴/玩具
-    { id: 1008, title: "婴儿监控摄像头 夜视 WiFi", basePrice: 179 },
-    { id: 1018, title: "积木拼装模型 1000片", basePrice: 25 },
-    // 运动/户外
-    { id: 1009, title: "折叠露营椅 铝合金 便携", basePrice: 109 },
-    { id: 1019, title: "瑜伽垫 TPE 防滑 6mm", basePrice: 39 },
-    // 食品/饮料
-    { id: 1020, title: "越南咖啡粉 速溶黑咖啡 500g", basePrice: 28 },
-    { id: 1021, title: "泰国芒果干 无添加 300g", basePrice: 18 },
-    // 汽车/摩托
-    { id: 1022, title: "车载手机支架 吸盘式", basePrice: 22 },
-    { id: 1023, title: "汽车遮阳挡 前挡折叠", basePrice: 16 },
-  ];
-
-  const entries: PriceEntry[] = [];
-  const platforms = ["lazada", "shopee", "tiktok"];
-  const markets = ["th", "vn", "id", "my", "ph", "sg"];
-
-  for (const product of mockProducts) {
-    for (const platform of platforms) {
-      for (const market of markets.slice(0, 3)) {
-        const jitter = (Math.random() - 0.5) * product.basePrice * 0.3;
-        const price = Math.round((product.basePrice + jitter) * 100) / 100;
-        entries.push({
-          productId: `${platform}_${market}_${product.id}`,
-          title: product.title,
-          platform,
-          platformName: PLATFORM_META[platform] || platform,
-          market,
-          marketName: MARKET_META[market] || market,
-          price,
+async function fetchLazadaPrices(connections: LazadaCredentials[]): Promise<PriceEntry[]> {
+  const allEntries: PriceEntry[] = [];
+  for (const c of connections) {
+    const client = new LazadaClient({
+      appKey: c.appKey,
+      appSecret: c.appSecret,
+      accessToken: c.accessToken,
+      market: c.market as LazadaMarketCode,
+    });
+    const service = new LazadaProductService(client);
+    try {
+      const products = await service.listProducts();
+      for (const p of products) {
+        allEntries.push({
+          productId: p.itemId,
+          title: p.title,
+          platform: "lazada",
+          platformName: "Lazada",
+          market: c.market,
+          marketName: MARKET_META[c.market] ?? c.market,
+          price: p.specialPrice ?? p.price,
+          compareAtPrice: p.specialPrice && p.specialPrice < p.price ? p.price : undefined,
           change: "same",
           lastUpdated: new Date().toISOString(),
         });
       }
-    }
+    } catch { /* skip unreachable stores */ }
   }
-
-  return entries;
+  return allEntries;
 }
 
-// ── 价格历史 ──
-
-function loadHistoryLegacy(): PriceSnapshot[] {
-  try {
-    if (!fs.existsSync(HISTORY_FILE)) return [];
-    return JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8")) as PriceSnapshot[];
-  } catch {
-    return [];
+async function fetchShopeePrices(connections: ShopeeCredentials[]): Promise<PriceEntry[]> {
+  const allEntries: PriceEntry[] = [];
+  for (const c of connections) {
+    const client = new ShopeeClient({
+      partnerId: c.partnerId,
+      partnerKey: c.partnerKey,
+      shopId: c.shopId,
+      accessToken: c.accessToken,
+      market: c.market as ShopeeMarketCode,
+    });
+    const service = new ShopeeProductService(client);
+    try {
+      const products = await service.listProducts();
+      for (const p of products) {
+        allEntries.push({
+          productId: p.itemId,
+          title: p.title,
+          platform: "shopee",
+          platformName: "Shopee",
+          market: c.market,
+          marketName: MARKET_META[c.market] ?? c.market,
+          price: p.price,
+          compareAtPrice: p.originalPrice && p.originalPrice > p.price ? p.originalPrice : undefined,
+          change: "same",
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    } catch { /* skip unreachable stores */ }
   }
+  return allEntries;
 }
+
+async function fetchTiktokPrices(connections: TiktokCredentials[]): Promise<PriceEntry[]> {
+  const allEntries: PriceEntry[] = [];
+  for (const c of connections) {
+    const client = new TiktokClient({
+      appKey: c.appKey,
+      appSecret: c.appSecret,
+      accessToken: c.accessToken,
+      shopCipher: c.shopCipher,
+      market: c.market as TiktokMarketCode,
+    });
+    const service = new TiktokProductService(client);
+    try {
+      const products = await service.listProducts();
+      for (const p of products) {
+        allEntries.push({
+          productId: p.productId,
+          title: p.title,
+          platform: "tiktok",
+          platformName: "TikTok Shop",
+          market: c.market,
+          marketName: MARKET_META[c.market] ?? c.market,
+          price: p.price,
+          change: "same",
+          lastUpdated: new Date().toISOString(),
+        });
+      }
+    } catch { /* skip unreachable stores */ }
+  }
+  return allEntries;
+}
+
+// ── 价格历史（PostgreSQL） ──
 
 async function loadHistory(userId: string): Promise<PriceSnapshot[]> {
   try {
@@ -196,26 +220,13 @@ async function loadHistory(userId: string): Promise<PriceSnapshot[]> {
       .orderBy(desc(priceSnapshots.createdAt))
       .limit(30);
 
-    return rows.map((row) => ({
+    return rows.map((row: { timestamp: string; prices: string }) => ({
       timestamp: row.timestamp,
-      prices: JSON.parse(row.prices),
+      prices: JSON.parse(row.prices) as Record<string, number>,
     })).reverse();
   } catch {
     return [];
   }
-}
-
-function saveSnapshotLegacy(snapshot: PriceSnapshot): void {
-  const dir = path.dirname(HISTORY_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-  const history = loadHistoryLegacy();
-  const last = history[history.length - 1];
-  if (last && JSON.stringify(last.prices) === JSON.stringify(snapshot.prices)) return;
-
-  history.push(snapshot);
-  const trimmed = history.length > 30 ? history.slice(-30) : history;
-  fs.writeFileSync(HISTORY_FILE, JSON.stringify(trimmed, null, 2), "utf-8");
 }
 
 async function saveSnapshot(userId: string, snapshot: PriceSnapshot): Promise<void> {
@@ -232,7 +243,6 @@ async function saveSnapshot(userId: string, snapshot: PriceSnapshot): Promise<vo
       await db.delete(priceSnapshots).where(eq(priceSnapshots.id, oldest.id));
     }
 
-    // Skip duplicates
     const last = recent[0];
     if (last && last.prices === JSON.stringify(snapshot.prices)) return;
 
@@ -242,11 +252,11 @@ async function saveSnapshot(userId: string, snapshot: PriceSnapshot): Promise<vo
       timestamp: snapshot.timestamp,
       prices: JSON.stringify(snapshot.prices),
     });
-  } catch { /* ignore */ }
+  } catch { /* ignore DB errors during save */ }
 }
 
-async function compareWithHistory(current: PriceEntry[], userId?: string): Promise<PriceEntry[]> {
-  const history = userId ? await loadHistory(userId) : loadHistoryLegacy();
+async function compareWithHistory(current: PriceEntry[], userId: string): Promise<PriceEntry[]> {
+  const history = await loadHistory(userId);
   if (history.length === 0) {
     return current.map((e) => ({ ...e, change: "new" as const }));
   }
@@ -278,15 +288,26 @@ async function compareWithHistory(current: PriceEntry[], userId?: string): Promi
 // ── 主入口 ──
 
 export interface GetAllPricesOptions {
-  userId?: string;
-  shopifyConnections?: ShopifyCredentials[];
+  userId: string;
+  shopify?: ShopifyCredentials[];
+  lazada?: LazadaCredentials[];
+  shopee?: ShopeeCredentials[];
+  tiktok?: TiktokCredentials[];
 }
 
-export async function getAllPrices(options?: GetAllPricesOptions): Promise<MonitorResult> {
-  const userId = options?.userId;
-  const shopifyPrices = await fetchShopifyPrices(options?.shopifyConnections);
-  const mockPrices = fetchMockPrices();
-  const allPrices = await compareWithHistory([...shopifyPrices, ...mockPrices], userId);
+export async function getAllPrices(options: GetAllPricesOptions): Promise<MonitorResult> {
+  // 并行查询所有已连接平台的真实价格
+  const [shopifyPrices, lazadaPrices, shopeePrices, tiktokPrices] = await Promise.all([
+    options.shopify?.length ? fetchShopifyPrices(options.shopify) : Promise.resolve([] as PriceEntry[]),
+    options.lazada?.length ? fetchLazadaPrices(options.lazada) : Promise.resolve([] as PriceEntry[]),
+    options.shopee?.length ? fetchShopeePrices(options.shopee) : Promise.resolve([] as PriceEntry[]),
+    options.tiktok?.length ? fetchTiktokPrices(options.tiktok) : Promise.resolve([] as PriceEntry[]),
+  ]);
+
+  const allPrices = await compareWithHistory(
+    [...shopifyPrices, ...lazadaPrices, ...shopeePrices, ...tiktokPrices],
+    options.userId,
+  );
 
   const priceMap: Record<string, number> = {};
   for (const entry of allPrices) {
@@ -294,12 +315,7 @@ export async function getAllPrices(options?: GetAllPricesOptions): Promise<Monit
   }
 
   const snapshot: PriceSnapshot = { timestamp: new Date().toISOString(), prices: priceMap };
-
-  if (userId) {
-    await saveSnapshot(userId, snapshot);
-  } else {
-    saveSnapshotLegacy(snapshot);
-  }
+  await saveSnapshot(options.userId, snapshot);
 
   const upCount = allPrices.filter((e) => e.change === "up").length;
   const downCount = allPrices.filter((e) => e.change === "down").length;
@@ -317,8 +333,8 @@ export async function getAllPrices(options?: GetAllPricesOptions): Promise<Monit
   };
 }
 
-export async function getPriceHistory(productId: string | number, userId?: string): Promise<PriceSnapshot[]> {
-  const history = userId ? await loadHistory(userId) : loadHistoryLegacy();
+export async function getPriceHistory(productId: string | number, userId: string): Promise<PriceSnapshot[]> {
+  const history = await loadHistory(userId);
   return history.filter((snap) =>
     Object.keys(snap.prices).some((key) => key.includes(String(productId)))
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllPrices, GetAllPricesOptions } from "../../../src/engine/price-monitor";
+import { getAllPrices } from "../../../src/engine/price-monitor";
+import type { ShopifyCredentials, LazadaCredentials, ShopeeCredentials, TiktokCredentials } from "../../../src/engine/price-monitor";
 import { checkRateLimit } from "../../../src/middleware/rate-limit";
 import { log } from "../../../src/logger";
 import { getAuth } from "../../../src/auth/auth";
@@ -21,31 +22,77 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "请求过于频繁，请稍后再试" }, { status: 429 });
     }
 
-    // 查询用户的 Shopify 店铺连接
-    const shopifyConnections: Array<{ storeDomain: string; accessToken: string }> = [];
-    try {
-      const rows = await db
-        .select()
-        .from(storeConnections)
-        .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
+    // 查询用户所有已连接店铺
+    const rows = await db
+      .select()
+      .from(storeConnections)
+      .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
 
-      for (const row of rows) {
-        if (row.platform === "shopify") {
-          const creds = JSON.parse(decryptToken(row.encryptedCredentials, row.iv, row.authTag));
-          shopifyConnections.push(creds as { storeDomain: string; accessToken: string });
+    const shopify: ShopifyCredentials[] = [];
+    const lazada: LazadaCredentials[] = [];
+    const shopee: ShopeeCredentials[] = [];
+    const tiktok: TiktokCredentials[] = [];
+
+    for (const row of rows) {
+      try {
+        const creds = JSON.parse(decryptToken(row.encryptedCredentials, row.iv, row.authTag));
+        switch (row.platform) {
+          case "shopify":
+            shopify.push({
+              storeDomain: creds.storeDomain ?? creds.store_domain,
+              accessToken: creds.accessToken ?? creds.access_token,
+            });
+            break;
+          case "lazada":
+            lazada.push({
+              appKey: creds.appKey ?? creds.app_key,
+              appSecret: creds.appSecret ?? creds.app_secret,
+              accessToken: creds.accessToken ?? creds.access_token,
+              market: row.market,
+            });
+            break;
+          case "shopee":
+            shopee.push({
+              partnerId: creds.partnerId ?? creds.partner_id,
+              partnerKey: creds.partnerKey ?? creds.partner_key,
+              shopId: creds.shopId ?? creds.shop_id,
+              accessToken: creds.accessToken ?? creds.access_token,
+              market: row.market,
+            });
+            break;
+          case "tiktok":
+            tiktok.push({
+              appKey: creds.appKey ?? creds.app_key,
+              appSecret: creds.appSecret ?? creds.app_secret,
+              accessToken: creds.accessToken ?? creds.access_token,
+              shopCipher: creds.shopCipher ?? creds.shop_cipher,
+              market: row.market,
+            });
+            break;
         }
+      } catch (err) {
+        log.warn("Failed to decrypt store connection", { platform: row.platform, storeId: row.id });
       }
-    } catch (err) {
-      log.error("Failed to load store connections for monitor", { error: String(err) });
     }
 
-    const options: GetAllPricesOptions = {
+    const data = await getAllPrices({
       userId: auth.userId,
-      shopifyConnections: shopifyConnections.length ? shopifyConnections : undefined,
-    };
+      shopify: shopify.length ? shopify : undefined,
+      lazada: lazada.length ? lazada : undefined,
+      shopee: shopee.length ? shopee : undefined,
+      tiktok: tiktok.length ? tiktok : undefined,
+    });
 
-    const data = await getAllPrices(options);
-    log.info("Monitor data fetched", { userId: auth.userId, total: data.snapshot.totalProducts });
+    log.info("Monitor data fetched", {
+      userId: auth.userId,
+      total: data.snapshot.totalProducts,
+      platforms: [
+        shopify.length && "shopify",
+        lazada.length && "lazada",
+        shopee.length && "shopee",
+        tiktok.length && "tiktok",
+      ].filter(Boolean).join(","),
+    });
 
     return NextResponse.json(data);
   } catch (err) {

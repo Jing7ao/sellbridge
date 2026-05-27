@@ -92,9 +92,40 @@ export interface ListingResult {
   skuList?: { shopSku: string; sellerSku: string; skuId: number | string }[];
   error?: string;
   success: boolean;
+  _mock?: boolean;
 }
 
-// ── 平台客户端工厂 ──
+// ── Mock 模式 ──
+
+let _mockDetected: boolean | null = null;
+
+function isMockMode(): boolean {
+  if (_mockDetected !== null) return _mockDetected;
+  // 检查是否配置了任何真实平台凭证
+  const hasShopify = !!(process.env.SHOPIFY_STORE_DOMAIN && process.env.SHOPIFY_ACCESS_TOKEN);
+  const hasLazada = (
+    process.env.LAZADA_TH_APP_KEY || process.env.LAZADA_VN_APP_KEY ||
+    process.env.LAZADA_ID_APP_KEY || process.env.LAZADA_MY_APP_KEY ||
+    process.env.LAZADA_PH_APP_KEY || process.env.LAZADA_SG_APP_KEY
+  );
+  const hasShopee = (
+    process.env.SHOPEE_TH_PARTNER_KEY || process.env.SHOPEE_VN_PARTNER_KEY ||
+    process.env.SHOPEE_ID_PARTNER_KEY || process.env.SHOPEE_MY_PARTNER_KEY ||
+    process.env.SHOPEE_PH_PARTNER_KEY || process.env.SHOPEE_SG_PARTNER_KEY
+  );
+  const hasTiktok = (
+    process.env.TIKTOK_TH_APP_KEY || process.env.TIKTOK_VN_APP_KEY ||
+    process.env.TIKTOK_ID_APP_KEY || process.env.TIKTOK_MY_APP_KEY ||
+    process.env.TIKTOK_PH_APP_KEY || process.env.TIKTOK_SG_APP_KEY
+  );
+  _mockDetected = !(hasShopify || hasLazada || hasShopee || hasTiktok);
+  return _mockDetected;
+}
+
+/** 生成一个拟真的 Mock 商品 ID */
+function mockItemId(): number {
+  return 10000000 + Math.floor(Math.random() * 90000000);
+}
 
 function getLazadaClient(market: MarketCode, creds?: { appKey: string; appSecret: string; accessToken: string }): LazadaClient | null {
   const appKey = creds?.appKey ?? process.env[`LAZADA_${market.toUpperCase()}_APP_KEY`];
@@ -139,6 +170,10 @@ async function listToLazada(
 ): Promise<Partial<ListingResult>> {
   const client = getLazadaClient(market, creds);
   if (!client) {
+    if (isMockMode()) {
+      const id = mockItemId();
+      return { itemId: id, skuList: input.skus.map((s) => ({ shopSku: s.sellerSku, sellerSku: s.sellerSku, skuId: id })), success: true, _mock: true };
+    }
     return { success: false, error: `缺少 Lazada ${market.toUpperCase()} 站点凭证` };
   }
 
@@ -180,6 +215,10 @@ async function listToShopee(
 ): Promise<Partial<ListingResult>> {
   const client = getShopeeClient(market, creds);
   if (!client) {
+    if (isMockMode()) {
+      const id = mockItemId();
+      return { itemId: id, skuList: input.skus.map((s) => ({ shopSku: s.sellerSku, sellerSku: s.sellerSku, skuId: id })), success: true, _mock: true };
+    }
     return { success: false, error: `缺少 Shopee ${market.toUpperCase()} 站点凭证` };
   }
 
@@ -233,6 +272,10 @@ async function listToTiktok(
 ): Promise<Partial<ListingResult>> {
   const client = getTiktokClient(market, creds);
   if (!client) {
+    if (isMockMode()) {
+      const id = mockItemId();
+      return { itemId: id, skuList: input.skus.map((s) => ({ shopSku: s.sellerSku, sellerSku: s.sellerSku, skuId: String(id) })), success: true, _mock: true };
+    }
     return { success: false, error: `缺少 TikTok ${market.toUpperCase()} 站点凭证` };
   }
 
@@ -291,6 +334,10 @@ async function listToShopify(
 ): Promise<Partial<ListingResult>> {
   const client = getShopifyClient(creds);
   if (!client) {
+    if (isMockMode()) {
+      const id = mockItemId();
+      return { itemId: id, skuList: input.skus.map((s) => ({ shopSku: s.sellerSku, sellerSku: s.sellerSku, skuId: String(id) })), success: true, _mock: true };
+    }
     return { success: false, error: "缺少 Shopify 凭证（请设置 SHOPIFY_STORE_DOMAIN / SHOPIFY_ACCESS_TOKEN）" };
   }
 
@@ -368,7 +415,12 @@ export async function listProduct(
           (c) => c.platform === platform && c.market === market
         );
         if (!conn) {
-          results.push({ ...base, error: `未连接 ${platformName} ${market.toUpperCase()} 店铺` });
+          // 无真实连接时，如果没有任何平台凭证则走 Mock 模式
+          if (isMockMode()) {
+            results.push({ ...base, itemId: mockItemId(), success: true, _mock: true });
+          } else {
+            results.push({ ...base, error: `未连接 ${platformName} ${market.toUpperCase()} 店铺` });
+          }
           continue;
         }
 

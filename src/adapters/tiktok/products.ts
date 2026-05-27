@@ -55,6 +55,16 @@ export interface CreateProductResult {
   skus?: { id: string; seller_sku: string }[];
 }
 
+export interface TiktokListedProduct {
+  productId: string;
+  title: string;
+  status: string;
+  price: number;
+  skuCount: number;
+  imageUrl?: string;
+  stock: number;
+}
+
 // ── 产品服务 ──
 
 export class TiktokProductService {
@@ -167,6 +177,35 @@ export class TiktokProductService {
     };
 
     return this.client.call<CreateProductResult>("/api/products", payload);
+  }
+
+  /** 获取在售商品列表（价格监控用） */
+  async listProducts(page = 1, pageSize = 50): Promise<TiktokListedProduct[]> {
+    const resp = await this.client.call<{
+      data?: {
+        products?: Array<{
+          product_id: string;
+          title: string;
+          status: string;
+          skus?: Array<{ price: { amount: number }; stock: number }>;
+          main_image?: { url: string };
+        }>;
+        total?: number;
+      };
+    }>(
+      "/api/products/search",
+      { page, page_size: pageSize, status: "ACTIVE" }
+    );
+
+    return (resp.data?.products ?? []).map((p) => ({
+      productId: p.product_id,
+      title: p.title,
+      status: p.status,
+      price: p.skus?.[0]?.price?.amount ?? 0,
+      skuCount: p.skus?.length ?? 0,
+      imageUrl: p.main_image?.url,
+      stock: p.skus?.reduce((sum, sku) => sum + (sku.stock ?? 0), 0) ?? 0,
+    }));
   }
 
   /**

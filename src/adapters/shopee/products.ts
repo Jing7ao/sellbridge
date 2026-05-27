@@ -68,6 +68,16 @@ export interface CreateProductResult {
   shop_category_id?: number;
 }
 
+export interface ShopeeListedProduct {
+  itemId: number;
+  title: string;
+  status: string;
+  price: number;
+  originalPrice?: number;
+  imageUrl?: string;
+  stock: number;
+}
+
 // ── 产品服务 ──
 
 export class ShopeeProductService {
@@ -179,6 +189,50 @@ export class ShopeeProductService {
       "/api/v2/product/add_item",
       payload
     );
+  }
+
+  /** 获取在售商品列表（价格监控用） */
+  async listProducts(offset = 0, pageSize = 50): Promise<ShopeeListedProduct[]> {
+    const listResp = await this.client.call<{
+      response?: {
+        item_list?: Array<{ item_id: number; item_status: string }>;
+        total_count?: number;
+        has_next_page?: boolean;
+      };
+    }>(
+      "/api/v2/product/get_item_list",
+      { offset, page_size: pageSize, item_status: "NORMAL" }
+    );
+
+    const itemList = listResp.response?.item_list ?? [];
+    if (!itemList.length) return [];
+
+    const itemIds = itemList.map((i) => i.item_id);
+    const infoResp = await this.client.call<{
+      response?: {
+        item_list?: Array<{
+          item_id: number;
+          item_name: string;
+          item_status: string;
+          stock_info?: Array<{ current_stock?: number }>;
+          price_info?: Array<{ current_price?: number; original_price?: number }>;
+          image?: { image_url_list?: string[] };
+        }>;
+      };
+    }>(
+      "/api/v2/product/get_item_base_info",
+      { item_id_list: itemIds }
+    );
+
+    return (infoResp.response?.item_list ?? []).map((item) => ({
+      itemId: item.item_id,
+      title: item.item_name ?? "",
+      status: item.item_status,
+      price: item.price_info?.[0]?.current_price ?? 0,
+      originalPrice: item.price_info?.[0]?.original_price,
+      imageUrl: item.image?.image_url_list?.[0],
+      stock: item.stock_info?.reduce((sum, s) => sum + (s.current_stock ?? 0), 0) ?? 0,
+    }));
   }
 
   /**

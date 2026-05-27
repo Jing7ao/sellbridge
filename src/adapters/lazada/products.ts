@@ -57,6 +57,16 @@ export interface CreateProductResult {
   skuList: { shopSku: string; sellerSku: string; skuId: number }[];
 }
 
+export interface LazadaListedProduct {
+  itemId: number;
+  title: string;
+  status: string;
+  price: number;
+  specialPrice?: number;
+  skus: { skuId: number; sellerSku: string; price: number; specialPrice?: number; quantity: number }[];
+  imageUrl?: string;
+}
+
 // ── 产品服务 ──
 
 export class LazadaProductService {
@@ -145,6 +155,48 @@ export class LazadaProductService {
       { Request: JSON.stringify(payload) },
       "POST"
     );
+  }
+
+  /** 获取在售商品列表（价格监控用） */
+  async listProducts(offset = 0, limit = 50): Promise<LazadaListedProduct[]> {
+    const resp = await this.client.call<{
+      data?: { total_products?: number; products?: Array<{
+        item_id: number;
+        attributes?: { name?: string };
+        status: string;
+        skus?: Array<{
+          sku_id?: number;
+          SellerSku?: string;
+          price?: string;
+          special_price?: string;
+          quantity?: string;
+          Images?: { image?: string };
+        }>;
+      }> };
+    }>(
+      "/products/get",
+      { offset, limit, filter: "live" }
+    );
+
+    const products = resp.data?.products ?? [];
+    return products.map((item) => {
+      const firstSku = item.skus?.[0];
+      return {
+        itemId: item.item_id,
+        title: item.attributes?.name ?? "",
+        status: item.status,
+        price: parseFloat(firstSku?.price ?? "0"),
+        specialPrice: firstSku?.special_price ? parseFloat(firstSku.special_price) : undefined,
+        skus: (item.skus ?? []).map((sku) => ({
+          skuId: sku.sku_id ?? 0,
+          sellerSku: sku.SellerSku ?? "",
+          price: parseFloat(sku.price ?? "0"),
+          specialPrice: sku.special_price ? parseFloat(sku.special_price) : undefined,
+          quantity: parseInt(sku.quantity ?? "0", 10),
+        })),
+        imageUrl: firstSku?.Images?.image,
+      };
+    });
   }
 
   /**
