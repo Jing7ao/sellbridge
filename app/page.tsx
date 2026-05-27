@@ -64,6 +64,8 @@ export default function Home() {
     warnings: { type: string; severity: string; message: string; market: string; detail?: string; lawRef?: string }[];
     exportWarnings: { type: string; severity: string; message: string; market: string; detail?: string; lawRef?: string }[];
     exportLaws: { law: string; summary: string }[];
+    tariffs: { market: string; label: string; acftaRate: string; mfnRate: string; vatRate: string; deMinimis: string; sensitiveCategories: { category: string; rate: string }[]; note: string }[];
+    formENote: { title: string; body: string };
   } | null>(null);
   const [checkingCompliance, setCheckingCompliance] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -414,40 +416,49 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 合规检查 */}
-      {title.trim() && selectedMarkets.size > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5 animate-fade-in-up stagger-3">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              合规检查
-              <span className="text-xs font-normal text-slate-400">（商标 / 禁售品类 / 市场准入）</span>
-            </h3>
-            <button
-              onClick={async () => {
-                setCheckingCompliance(true);
-                try {
-                  const resp = await fetch("/api/compliance", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      title,
-                      description,
-                      category,
-                      markets: Array.from(selectedMarkets),
-                    }),
-                  });
-                  const data = await resp.json();
-                  setCompliance(data);
-                } catch { /* ignore */ }
-                finally { setCheckingCompliance(false); }
-              }}
-              disabled={checkingCompliance}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
-            >
-              {checkingCompliance ? "检查中..." : compliance ? "重新检查" : "点击检查"}
-            </button>
-          </div>
+      {/* 步骤 4: 合规检查 */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 animate-fade-in-up stagger-3">
+        <h3 className="font-semibold text-slate-800 mb-2 flex items-center gap-2.5">
+          {stepNum(4)}
+          合规检查
+          <span className="text-xs font-normal text-slate-400">商标 · 禁售品类 · 市场准入 · 出口管制 · 关税预估</span>
+        </h3>
+
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-slate-400">
+            {compliance
+              ? `上次检查: ${new Date().toLocaleTimeString("zh-CN")}`
+              : !title.trim()
+              ? "输入商品标题后点击检查"
+              : selectedMarkets.size === 0
+              ? "请先选择目标市场"
+              : "检查商品是否存在合规风险"}
+          </p>
+          <button
+            onClick={async () => {
+              setCheckingCompliance(true);
+              try {
+                const resp = await fetch("/api/compliance", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title,
+                    description,
+                    category,
+                    markets: Array.from(selectedMarkets),
+                  }),
+                });
+                const data = await resp.json();
+                setCompliance(data);
+              } catch { /* ignore */ }
+              finally { setCheckingCompliance(false); }
+            }}
+            disabled={checkingCompliance || !title.trim() || selectedMarkets.size === 0}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {checkingCompliance ? "检查中..." : compliance ? "重新检查" : "点击检查"}
+          </button>
+        </div>
 
           {/* 目标市场合规警告 */}
           {compliance && compliance.warnings.length > 0 && (
@@ -506,6 +517,71 @@ export default function Home() {
             </div>
           )}
 
+          {/* 关税信息 */}
+          {compliance && compliance.tariffs && compliance.tariffs.length > 0 && (
+            <div className="space-y-2 mb-3">
+              <p className="text-xs font-semibold text-slate-500">关税与增值税预估</p>
+
+              {/* Form E 提醒 */}
+              {compliance.formENote && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm border bg-green-50 border-green-200 text-green-800">
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{compliance.formENote.title}</p>
+                    <p className="text-xs opacity-75 mt-0.5">{compliance.formENote.body}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 各市场关税表 */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-white/5">
+                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">市场</th>
+                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">ACFTA 税率</th>
+                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">无 Form E</th>
+                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">增值税</th>
+                      <th className="border border-slate-200 dark:border-white/10 p-1.5 text-left font-medium">免税额</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compliance.tariffs.map((t) => (
+                      <tr key={t.market}>
+                        <td className="border border-slate-200 dark:border-white/10 p-1.5 font-medium">{t.label}</td>
+                        <td className="border border-slate-200 dark:border-white/10 p-1.5 text-emerald-700">{t.acftaRate}</td>
+                        <td className="border border-slate-200 dark:border-white/10 p-1.5 text-red-600">{t.mfnRate}</td>
+                        <td className="border border-slate-200 dark:border-white/10 p-1.5">{t.vatRate}</td>
+                        <td className="border border-slate-200 dark:border-white/10 p-1.5">{t.deMinimis}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 敏感品类明细 */}
+              <details className="mt-1">
+                <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-500">各市场敏感品类关税明细</summary>
+                <div className="mt-2 space-y-2">
+                  {compliance.tariffs.map((t) => (
+                    <div key={`sens-${t.market}`} className="text-xs">
+                      <p className="font-medium text-slate-600 dark:text-slate-300 mb-1">{t.label}</p>
+                      <div className="grid grid-cols-2 gap-0.5">
+                        {t.sensitiveCategories.map((sc) => (
+                          <div key={sc.category} className="px-2 py-1 bg-slate-50 dark:bg-white/5 rounded flex justify-between">
+                            <span className="text-slate-500">{sc.category}</span>
+                            <span className="text-slate-600 font-medium">{sc.rate}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-slate-400 mt-0.5 italic">{t.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )}
+
           {/* 相关法规速查 */}
           {compliance && compliance.exportLaws && compliance.exportLaws.length > 0 && (
             <details className="mt-3">
@@ -531,11 +607,10 @@ export default function Home() {
 
           {!compliance && (
             <p className="text-xs text-slate-400">
-              点击上方按钮检查商品是否存在商标侵权、禁售品类、中国出口管制等合规风险
+              输入商品标题后点击检查按钮，检测商标、禁售品类、中国出口管制、目标市场准入及关税风险
             </p>
           )}
         </div>
-      )}
 
       {/* 提交按钮 */}
       <button

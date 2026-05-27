@@ -524,6 +524,134 @@ export function checkCompliance(params: {
   return { warnings: unique, marketSummaries, exportWarnings: uniqueExport, exportLaws: relevantLaws };
 }
 
+// ═══════════════════════════════════════════════════════════
+// 中国 → 东南亚 关税数据
+// 依据：中国-东盟自贸区（ACFTA/CAFTA）协定
+//       Form E 原产地证书可使大多数品类享受 0% 关税
+// ═══════════════════════════════════════════════════════════
+
+export interface TariffInfo {
+  market: string;
+  label: string;
+  /** ACFTA 协定下的基础税率 */
+  acftaRate: string;
+  /** 无 Form E 时的 MFN 税率范围 */
+  mfnRate: string;
+  /** 增值税/消费税税率 */
+  vatRate: string;
+  /** 低价值商品免税阈值 */
+  deMinimis: string;
+  /** 需特别关注的税目 */
+  sensitiveCategories: { category: string; rate: string }[];
+  /** 关税计算说明 */
+  note: string;
+}
+
+export const TARIFFS: TariffInfo[] = [
+  {
+    market: "th",
+    label: "泰国",
+    acftaRate: "0%（多数消费品，凭 Form E）",
+    mfnRate: "5% - 30%（无 Form E 时适用）",
+    vatRate: "7%（增值税 VAT）",
+    deMinimis: "1,500 THB（约 ¥300）以下免征关税",
+    sensitiveCategories: [
+      { category: "电子产品", rate: "0% (ACFTA)" },
+      { category: "服装鞋包", rate: "0% (ACFTA)" },
+      { category: "化妆品", rate: "0-5% (ACFTA)" },
+      { category: "食品饮料", rate: "5-30%（敏感清单）" },
+      { category: "汽车配件", rate: "0-10% (ACFTA)" },
+    ],
+    note: "CIF 价值（货值+运费+保险）× 税率。Form E 须在出口时向中国海关申领。",
+  },
+  {
+    market: "vn",
+    label: "越南",
+    acftaRate: "0%（多数消费品，凭 Form E）",
+    mfnRate: "5% - 35%（无 Form E 时适用）",
+    vatRate: "10%（增值税 VAT），部分必需品 5%",
+    deMinimis: "1,000,000 VND（约 ¥300）以下免征",
+    sensitiveCategories: [
+      { category: "电子产品", rate: "0% (ACFTA)" },
+      { category: "服装鞋包", rate: "0% (ACFTA)" },
+      { category: "化妆品", rate: "0-5% (ACFTA)" },
+      { category: "食品饮料", rate: "5-35%（敏感清单）" },
+      { category: "钢铁制品", rate: "可能适用反倾销税" },
+    ],
+    note: "越南对部分中国商品有反倾销调查（钢铁、铝材等），需额外关注。",
+  },
+  {
+    market: "id",
+    label: "印尼",
+    acftaRate: "0%（多数消费品，凭 Form E）",
+    mfnRate: "5% - 40%（无 Form E 时适用）",
+    vatRate: "11%（PPN 增值税），2025年从10%上调",
+    deMinimis: "$3 以下免征关税（极低），2024年收紧对小包裹的监管",
+    sensitiveCategories: [
+      { category: "电子产品", rate: "0% (ACFTA)" },
+      { category: "服装鞋包", rate: "0-5% (ACFTA)" },
+      { category: "化妆品", rate: "0-5% + BPOM 注册" },
+      { category: "食品饮料", rate: "5-20% + Halal 认证" },
+      { category: "纺织品", rate: "有进口配额限制" },
+      { category: "鞋类", rate: "有进口配额限制" },
+    ],
+    note: "印尼对纺织、鞋类、电子等品类有进口配额（非关税壁垒）。小包裹政策2024年大幅收紧，$3 以上即征税。",
+  },
+  {
+    market: "my",
+    label: "马来西亚",
+    acftaRate: "0%（多数消费品，凭 Form E）",
+    mfnRate: "0% - 60%（无 Form E 时适用，部分极高）",
+    vatRate: "10% SST（销售与服务税）+ 5-10% 奢侈品税",
+    deMinimis: "MYR 500（约 ¥800）以下免征",
+    sensitiveCategories: [
+      { category: "电子产品", rate: "0% (ACFTA)" },
+      { category: "服装鞋包", rate: "0% (ACFTA)" },
+      { category: "化妆品", rate: "0-5% (ACFTA)" },
+      { category: "食品饮料", rate: "0-40%（酒精饮料极高）" },
+      { category: "汽车", rate: "60-100%（高关税保护）" },
+    ],
+    note: "马来西亚对酒精饮料和烟草征收极高关税。汽车整车关税极高（保护国产Proton/Perodua）。",
+  },
+  {
+    market: "ph",
+    label: "菲律宾",
+    acftaRate: "0%（多数消费品，凭 Form E）",
+    mfnRate: "0% - 30%（无 Form E 时适用）",
+    vatRate: "12%（增值税 VAT）",
+    deMinimis: "PHP 10,000（约 ¥1,300）以下免征",
+    sensitiveCategories: [
+      { category: "电子产品", rate: "0% (ACFTA)" },
+      { category: "服装鞋包", rate: "0% (ACFTA)" },
+      { category: "化妆品", rate: "0-5% (ACFTA)" },
+      { category: "食品饮料", rate: "0-30%" },
+      { category: "农产品", rate: "高关税保护" },
+    ],
+    note: "菲律宾对农产品实施较高关税保护。de minimis 阈值慷慨（约¥1300）。",
+  },
+  {
+    market: "sg",
+    label: "新加坡",
+    acftaRate: "0%（绝大多数商品，含 ACFTA 及中新双边FTA）",
+    mfnRate: "0%（新加坡对绝大多数商品免征关税）",
+    vatRate: "9% GST（商品与服务税），2024年从8%上调",
+    deMinimis: "SGD 400（约 ¥2,100）以下免征 GST",
+    sensitiveCategories: [
+      { category: "电子产品", rate: "0%" },
+      { category: "服装鞋包", rate: "0%" },
+      { category: "化妆品", rate: "0%（GST 9%）" },
+      { category: "食品饮料", rate: "0%（酒精/烟草除外）" },
+      { category: "酒精饮料", rate: "高额消费税" },
+    ],
+    note: "新加坡是自由港，关税近零。但 GST 9% 按 CIF + duty 征收。酒精和烟草有高额消费税。",
+  },
+];
+
+/** 获取指定市场的关税信息 */
+export function getTariffInfo(market: string): TariffInfo | undefined {
+  return TARIFFS.find((t) => t.market === market);
+}
+
 /** 获取指定市场的合规摘要 */
 export function getMarketCompliance(market: string): MarketCompliance | undefined {
   return COMPLIANCE.find((c) => c.market === market);
