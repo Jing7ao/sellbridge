@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
   Plus, Trash2, Globe, Send, CheckCircle, XCircle, Loader2,
-  ImagePlus, Package, Tag, Sparkles, Ruler, List, AlertTriangle,
+  ImagePlus, Package, Tag, Sparkles, Ruler, List, AlertTriangle, Info,
 } from "lucide-react";
 import { PageFadeIn, FadeInUp } from "../components/animations";
 
@@ -523,7 +523,7 @@ export default function Home() {
               {/* Form E 提醒 — 始终可见 */}
               {compliance.formENote && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm border bg-green-50 border-green-200 text-green-800">
-                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <Info className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{compliance.formENote.title}</p>
                     <p className="text-xs opacity-75 mt-0.5">{compliance.formENote.body}</p>
