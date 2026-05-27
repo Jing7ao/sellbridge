@@ -60,7 +60,11 @@ export default function Home() {
   const [keywords, setKeywords] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ListingResult[] | null>(null);
-  const [compliance, setCompliance] = useState<{ warnings: { type: string; severity: string; message: string; market: string; detail?: string }[] } | null>(null);
+  const [compliance, setCompliance] = useState<{
+    warnings: { type: string; severity: string; message: string; market: string; detail?: string; lawRef?: string }[];
+    exportWarnings: { type: string; severity: string; message: string; market: string; detail?: string; lawRef?: string }[];
+    exportLaws: { law: string; summary: string }[];
+  } | null>(null);
   const [checkingCompliance, setCheckingCompliance] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -445,15 +449,10 @@ export default function Home() {
             </button>
           </div>
 
-          {compliance && compliance.warnings.length === 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-sm text-emerald-700">
-              <CheckCircle className="w-4 h-4" />
-              未发现明显风险（本检查仅供参考，不构成法律意见）
-            </div>
-          )}
-
+          {/* 目标市场合规警告 */}
           {compliance && compliance.warnings.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2 mb-3">
+              <p className="text-xs font-semibold text-slate-500">目标市场风险</p>
               {compliance.warnings.map((w, i) => (
                 <div
                   key={i}
@@ -471,16 +470,68 @@ export default function Home() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{w.message}</p>
                     {w.detail && <p className="text-xs opacity-75 mt-0.5">{w.detail}</p>}
-                    <p className="text-xs mt-1 opacity-60">涉及市场: {w.market}</p>
+                    {w.lawRef && <p className="text-xs mt-1 opacity-50">法规依据: {w.lawRef}</p>}
+                    <p className="text-xs mt-0.5 opacity-60">涉及市场: {w.market}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
+          {/* 中国出口端合规警告 */}
+          {compliance && compliance.exportWarnings?.length > 0 && (
+            <div className="space-y-2 mb-3">
+              <p className="text-xs font-semibold text-orange-600">中国出口端风险</p>
+              {compliance.exportWarnings.map((w, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-sm border ${
+                    w.severity === "high"
+                      ? "bg-orange-50 border-orange-200 text-orange-800"
+                      : w.severity === "medium"
+                      ? "bg-amber-50 border-amber-100 text-amber-800"
+                      : "bg-slate-50 border-slate-200 text-slate-600"
+                  }`}
+                >
+                  <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${
+                    w.severity === "high" ? "text-orange-500" : w.severity === "medium" ? "text-amber-500" : "text-slate-400"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{w.message}</p>
+                    {w.detail && <p className="text-xs opacity-75 mt-0.5">{w.detail}</p>}
+                    {w.lawRef && <p className="text-xs mt-1 opacity-50">法规依据: {w.lawRef}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 相关法规速查 */}
+          {compliance && compliance.exportLaws && compliance.exportLaws.length > 0 && (
+            <details className="mt-3">
+              <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-500">涉及的中国出口法规速查（共 {compliance.exportLaws.length} 部）</summary>
+              <div className="mt-2 grid grid-cols-1 gap-1 max-h-40 overflow-y-auto">
+                {compliance.exportLaws.map((l, i) => (
+                  <div key={i} className="text-xs px-2 py-1.5 bg-slate-50 dark:bg-white/5 rounded-lg">
+                    <span className="font-medium text-slate-600 dark:text-slate-300">{l.law}</span>
+                    <span className="text-slate-400"> — {l.summary}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+          {/* 全部通过 */}
+          {compliance && compliance.warnings?.length === 0 && (!compliance.exportWarnings || compliance.exportWarnings.length === 0) && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 text-sm text-emerald-700">
+              <CheckCircle className="w-4 h-4" />
+              未发现明显风险（本检查仅供参考，不构成法律意见）
+            </div>
+          )}
+
           {!compliance && (
             <p className="text-xs text-slate-400">
-              点击上方按钮检查商品是否存在商标侵权、禁售品类、市场准入等合规风险
+              点击上方按钮检查商品是否存在商标侵权、禁售品类、中国出口管制等合规风险
             </p>
           )}
         </div>

@@ -227,7 +227,98 @@ export const TRADEMARK_SENSITIVE_KEYWORDS: { keyword: string; owner: string; mar
   { keyword: "supreme", owner: "Chapter 4 Corp. (VF)", markets: ["all"] },
 ];
 
-// ── 通用封禁品类关键词 ──
+// ═══════════════════════════════════════════════════════════
+// 中国出口端法规
+// 法律依据：《对外贸易法》《海关法》《出口管制法》《进出口商品检验法》
+//          《知识产权海关保护条例》《跨境电商零售出口监管通知》
+// ═══════════════════════════════════════════════════════════
+
+export interface ExportRegulation {
+  law: string;
+  year: number;
+  summary: string;
+  practicalImpact: string;
+}
+
+export const CHINA_EXPORT_LAWS: ExportRegulation[] = [
+  {
+    law: "《中华人民共和国对外贸易法》",
+    year: 2004,
+    summary: "规范跨境贸易经营主体、货物进出口管理、知识产权保护。明确从事外贸无需行政审批，但实行备案登记制。",
+    practicalImpact: "跨境电商卖家需在商务部门完成对外贸易经营者备案登记，方可办理出口报关。",
+  },
+  {
+    law: "《中华人民共和国海关法》",
+    year: 2021,
+    summary: "规定进出口货物通关程序、关税征收、海关监管、走私处罚。",
+    practicalImpact: "所有跨境包裹须如实申报品名/数量/价值，低报、夹藏属于走私行为，面临罚款和刑事风险。",
+  },
+  {
+    law: "《中华人民共和国出口管制法》",
+    year: 2020,
+    summary: "建立统一的出口管制体系，管制清单包括两用物项、军品、核及其他敏感物项。实行最终用户和最终用途管理制度。",
+    practicalImpact: "管制物项出口须取得许可证。未经许可出口管制物项，最高可处20倍违法经营额罚款，情节严重追究刑事责任。",
+  },
+  {
+    law: "《中华人民共和国进出口商品检验法》",
+    year: 2021,
+    summary: "列入《法定检验商品目录》的商品必须经商检机构检验合格方可出口。",
+    practicalImpact: "电子产品、玩具、纺织品、食品接触材料等品类属于法定检验范围，出口前须取得商检放行单。",
+  },
+  {
+    law: "《中华人民共和国知识产权海关保护条例》",
+    year: 2018,
+    summary: "权利人可向海关总署申请知识产权保护备案（商标权、著作权、专利权）。海关发现涉嫌侵权货物时主动中止放行并通知权利人确认。",
+    practicalImpact: "品牌仿品在出口查验时即会被海关扣留。即使是合法品牌商品，若未在海关备案授权链，也可能被中止放行延误会期。",
+  },
+  {
+    law: "《关于完善跨境电子商务零售出口监管有关工作的通知》（商财发〔2018〕486号）",
+    year: 2018,
+    summary: "跨境电商零售出口不执行首次进口许可批件、注册或备案要求（特殊商品除外）。适用9610/9710/9810等海关监管方式代码。",
+    practicalImpact: "普通消费品走9610报关模式可简化通关手续，但需纳入海关统计和外汇管理。综试区内企业享受增值税/消费税免退税政策。",
+  },
+  {
+    law: "《海关行政处罚实施条例》",
+    year: 2004,
+    summary: "对申报不实、伪报、瞒报、夹藏等行为的处罚标准细化。",
+    practicalImpact: "品名申报错误（如'手机壳'申报为'塑料片'）即为申报不实，罚款货物价值的5%-30%。",
+  },
+  {
+    law: "《个人外汇管理办法》及跨境贸易外汇管理",
+    year: 2007,
+    summary: "个人年度结汇/购汇额度各5万美元。跨境电商卖家收取的外汇货款需按规定结汇或留存外汇账户。",
+    practicalImpact: "月销超过约3万美金（年超5万）的卖家，个人账户将面临结汇额度不足问题，需开立企业外汇账户或使用第三方跨境收付款平台。",
+  },
+];
+
+/** 中国禁止或限制出口的品类（出口管制清单 + 法检目录摘要） */
+export const CHINA_EXPORT_PROHIBITED_KEYWORDS: { keyword: string; reason: string; lawRef: string }[] = [
+  { keyword: "文物", reason: "禁止一般贸易出口，须取得文物出境许可证", lawRef: "《文物保护法》" },
+  { keyword: "金条", reason: "黄金及其制品出口受央行管制，个人不得擅自出口", lawRef: "《黄金管理条例》" },
+  { keyword: "稀土", reason: "稀土属于国家战略资源，出口须配额许可证", lawRef: "《出口管制法》" },
+  { keyword: "无人机", reason: "部分无人机（续航>30min/飞行高度>3000m等）属于两用物项管制", lawRef: "《出口管制法》两用物项清单" },
+  { keyword: "夜视仪", reason: "属于两用物项，出口须许可证", lawRef: "《出口管制法》" },
+  { keyword: "加密设备", reason: "密码产品出口受《商用密码管理条例》管制", lawRef: "《出口管制法》+ 商用密码条例" },
+  { keyword: "化学品", reason: "列入《危险化学品目录》的商品出口须危包证+MSDS", lawRef: "《危险化学品安全管理条例》" },
+  { keyword: "锂电池", reason: "独立锂电池（非内置）属危险品，出口须UN38.3检测+危包证", lawRef: "《危险货物运输规则》+ IATA" },
+  { keyword: "种子", reason: "植物种子出口须检疫审批", lawRef: "《进出境动植物检疫法》" },
+  { keyword: "食品", reason: "出口食品须生产企业备案+检验检疫+部分目标国注册", lawRef: "《食品安全法》+ 海关出口食品管理规定" },
+  { keyword: "肉类", reason: "出口肉类须屠宰加工企业注册+检疫证书+目标国准入", lawRef: "《进出境动植物检疫法》" },
+  { keyword: "中药材", reason: "部分中药材出口受CITES公约管制（如沉香、虫草等濒危物种），须CITES许可 + 药监批准", lawRef: "《进出口商品检验法》+ CITES" },
+  { keyword: "木材", reason: "部分木材出口须濒危物种证明+检疫证书", lawRef: "《进出境动植物检疫法》+ CITES" },
+  { keyword: "化妆品", reason: "出口化妆品须生产企业卫生许可+成分合规+部分国家动物实验相关证明", lawRef: "《化妆品监督管理条例》" },
+];
+
+/** 中国出口端需注意的合规要点关键词 */
+export const CHINA_EXPORT_RISK_KEYWORDS: { keyword: string; warning: string }[] = [
+  { keyword: "品牌", warning: "如出口商品涉及注册商标且非自有品牌，须取得品牌权利人的海关备案授权，否则出口时海关将中止放行" },
+  { keyword: "logo", warning: "带有 LOGO 的商品如非正品授权，出口查验率极高，将被海关直接扣留" },
+  { keyword: "贴牌", warning: "OEM/贴牌商品出口时，如品牌方未在海关知识产权备案系统中授权你司，货可能被扣" },
+  { keyword: "赠品", warning: "赠品同样须如实申报，不得以'免费''非卖品'为由不申报。部分国家海关不接受零价值申报" },
+  { keyword: "样品", warning: "商业样品同样受出口法规管辖，须正常报关。样品价值不得超过合理范围" },
+];
+
+// ── 通用封禁品类关键词 (目标市场端) ──
 
 export const PROHIBITED_KEYWORDS: { keyword: string; reason: string; markets: string[] }[] = [
   { keyword: "电子烟", reason: "多数东南亚国家禁止或限制电子烟线上销售", markets: ["th", "vn", "sg"] },
@@ -256,16 +347,19 @@ export const PROHIBITED_KEYWORDS: { keyword: string; reason: string; markets: st
 // ── 检测函数 ──
 
 export interface ComplianceWarning {
-  type: "trademark" | "prohibited_category" | "restricted_category" | "labeling";
+  type: "trademark" | "prohibited_category" | "restricted_category" | "labeling" | "export_control" | "export_risk";
   severity: "high" | "medium" | "info";
   message: string;
   market: string;
   detail?: string;
+  lawRef?: string; // 涉及的中国法规
 }
 
 export interface ComplianceCheckResult {
   warnings: ComplianceWarning[];
   marketSummaries: { market: string; label: string; restrictedCount: number; prohibitedCount: number }[];
+  exportWarnings: ComplianceWarning[];
+  exportLaws: { law: string; summary: string }[];
 }
 
 export function checkCompliance(params: {
@@ -351,12 +445,63 @@ export function checkCompliance(params: {
     }
   }
 
+  // 4. 中国出口端合规检查
+  const exportWarnings: ComplianceWarning[] = [];
+
+  // 4a 检查中国禁止/管制出口品类
+  for (const ek of CHINA_EXPORT_PROHIBITED_KEYWORDS) {
+    if (fullText.includes(ek.keyword.toLowerCase())) {
+      exportWarnings.push({
+        type: "export_control",
+        severity: "high",
+        message: `中国出口管制：${ek.keyword}（${ek.reason}）`,
+        market: "CN",
+        detail: `在从中国发往目标国家前，须先完成 ${ek.keyword} 的出口许可/审批/检验，否则海关不放行。`,
+        lawRef: ek.lawRef,
+      });
+    }
+  }
+
+  // 4b 检查出口风险关键词
+  for (const rk of CHINA_EXPORT_RISK_KEYWORDS) {
+    if (fullText.includes(rk.keyword.toLowerCase())) {
+      exportWarnings.push({
+        type: "export_risk",
+        severity: "medium",
+        message: rk.warning,
+        market: "CN",
+        detail: "此为商品出口中国海关时的额外注意点，与目标市场合规无关。",
+      });
+    }
+  }
+
+  // 4c 知识产区海关备案提醒（商品含品牌关键词时触发）
+  const brandIndicators = ["品牌", "商标", "正品", "授权", "正版", "专卖", "代理"];
+  if (brandIndicators.some((bi) => fullText.includes(bi))) {
+    exportWarnings.push({
+      type: "export_risk",
+      severity: "info",
+      message: "涉及品牌商品出口，建议确认品牌方已在海关知识产权保护系统备案",
+      market: "CN",
+      detail: "根据《知识产权海关保护条例》，海关对已备案商标主动保护。如品牌方未备案你的授权，商品可能被中止放行。可在 customs.gov.cn 查询备案状态。",
+      lawRef: "《知识产权海关保护条例》",
+    });
+  }
+
   // 去重（同一消息+市场只保留一条）
   const seen = new Set<string>();
   const unique = warnings.filter((w) => {
     const key = `${w.type}|${w.message}|${w.market}`;
     if (seen.has(key)) return false;
     seen.add(key);
+    return true;
+  });
+
+  const exportSeen = new Set<string>();
+  const uniqueExport = exportWarnings.filter((w) => {
+    const key = `${w.type}|${w.message}|${w.market}`;
+    if (exportSeen.has(key)) return false;
+    exportSeen.add(key);
     return true;
   });
 
@@ -370,7 +515,13 @@ export function checkCompliance(params: {
     };
   });
 
-  return { warnings: unique, marketSummaries };
+  // 相关的中国出口法规摘要
+  const relevantLaws = CHINA_EXPORT_LAWS.map((l) => ({
+    law: l.law,
+    summary: l.practicalImpact,
+  }));
+
+  return { warnings: unique, marketSummaries, exportWarnings: uniqueExport, exportLaws: relevantLaws };
 }
 
 /** 获取指定市场的合规摘要 */
