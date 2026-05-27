@@ -5,7 +5,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles, Check, X, Gift } from "lucide-react";
-import { BrandIcon } from "../components/brand-logo";
+import { BrandIcon } from "../../components/brand-logo";
 import { checkPassword } from "../../src/auth/password";
 
 const FEATURES = [
