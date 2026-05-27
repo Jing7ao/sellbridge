@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { db } from "../../../../src/db/index";
-import { users } from "../../../../src/db/schema";
+import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 import { checkPassword } from "../../../../src/auth/password";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, name } = await req.json();
+    const { email, password, name, invite } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "邮箱和密码不能为空" }, { status: 400 });
@@ -37,6 +37,37 @@ export async function POST(req: NextRequest) {
       passwordHash,
       name: name || email.split("@")[0] || undefined,
     });
+
+    // 邀请奖励：双方各得 50 积分
+    if (invite && typeof invite === "string" && invite.length >= 8) {
+      const inviterRows = await db.select().from(users).where(eq(users.id, invite)).limit(1);
+      if (inviterRows[0]) {
+        await db.insert(creditTransactions).values([
+          {
+            id: crypto.randomUUID(),
+            userId: inviterRows[0].id,
+            amount: 50,
+            type: "invite_reward",
+            description: `邀请用户 ${email} 注册奖励`,
+          },
+          {
+            id: crypto.randomUUID(),
+            userId: id,
+            amount: 50,
+            type: "invite_bonus",
+            description: "通过邀请链接注册奖励",
+          },
+        ]);
+        await db
+          .update(users)
+          .set({ credits: (inviterRows[0].credits ?? 100) + 50 })
+          .where(eq(users.id, inviterRows[0].id));
+        await db
+          .update(users)
+          .set({ credits: 150 })
+          .where(eq(users.id, id));
+      }
+    }
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (err) {

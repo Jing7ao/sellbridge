@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles, Check, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Mail, Lock, User, ArrowRight, Globe, Zap, BarChart3, Sparkles, Check, X, Gift } from "lucide-react";
 import { checkPassword } from "../../src/auth/password";
 
 const FEATURES = [
@@ -15,7 +15,9 @@ const FEATURES = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("invite") ?? "";
+  const [mode, setMode] = useState<"login" | "register">(inviteCode ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -39,7 +41,7 @@ export default function LoginPage() {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name }),
+          body: JSON.stringify({ email, password, name, invite: inviteCode }),
         });
         if (!res.ok) {
           const data = await res.json();
@@ -141,6 +143,14 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-6">
+            {/* 邀请横幅 */}
+            {inviteCode && mode === "register" && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-100 mb-4 animate-fade-in">
+                <Gift className="w-4 h-4 text-indigo-500 shrink-0" />
+                <p className="text-xs text-indigo-700 font-medium">通过邀请链接注册，你和邀请人各得 <span className="font-bold">50 积分</span></p>
+              </div>
+            )}
+
             {/* Tab 切换 */}
             <div className="flex bg-slate-100 rounded-xl p-1 mb-5">
               <button
