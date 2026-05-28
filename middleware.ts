@@ -14,6 +14,7 @@ export async function middleware(req: NextRequest) {
   const STATIC_EXTS = /\.(mp4|webm|jpg|jpeg|png|gif|svg|ico|woff2?|ttf|eot)$/i;
   if (
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/admin") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico" ||
     STATIC_EXTS.test(pathname)
