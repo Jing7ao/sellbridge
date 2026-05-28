@@ -335,21 +335,21 @@ export default function AccountPage() {
             <Users className="w-4 h-4" />
             邀请好友
           </h2>
-          <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-5 bg-gradient-to-r from-indigo-50/50 to-violet-50/50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm p-5 bg-gradient-to-r from-indigo-50/50 to-violet-50/50 dark:from-indigo-950/20 dark:to-violet-950/20">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
                 <Gift className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-800">邀请好友，双方各得 <span className="text-indigo-600 font-bold">50 额度</span></p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  已邀请 <span className="font-bold text-slate-700">{invite.inviteCount}</span> 人，累计获得 <span className="font-bold text-indigo-600">{invite.inviteCredits}</span> 额度
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">邀请好友，双方各得 <span className="text-indigo-600 dark:text-indigo-400 font-bold">50 额度</span></p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  已邀请 <span className="font-bold text-slate-700 dark:text-slate-300">{invite.inviteCount}</span> 人，累计获得 <span className="font-bold text-indigo-600 dark:text-indigo-400">{invite.inviteCredits}</span> 额度
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 font-mono truncate">
-                <Link2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-slate-400 font-mono truncate">
+                <Link2 className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                 <span className="truncate">{invite.inviteLink}</span>
               </div>
               <button onClick={copyInviteLink} className="btn-primary-sm flex items-center gap-1.5 shrink-0">
