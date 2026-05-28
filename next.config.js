@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  experimental: { instrumentationHook: true },
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
   webpack: (config) => {
