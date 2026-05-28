@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   User, CreditCard, ArrowUpRight, ArrowDownRight, Gift, Zap,
   Package, History, Clock, BadgeCheck, Sparkles, ChevronRight,
@@ -241,16 +242,25 @@ export default function AccountPage() {
                   </li>
                 ))}
               </ul>
-              <button
-                className={`w-full mt-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  plan.highlight
-                    ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:-translate-y-0.5"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-                disabled
-              >
-                {plan.credits === 50 ? "已激活" : "即将开放"}
-              </button>
+              {plan.credits === 50 ? (
+                <button
+                  className="w-full mt-5 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 cursor-default"
+                  disabled
+                >
+                  已激活
+                </button>
+              ) : (
+                <Link
+                  href="/pricing"
+                  className={`block text-center w-full mt-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    plan.highlight
+                      ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:-translate-y-0.5"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  立即购买
+                </Link>
+              )}
             </div>
           ))}
         </div>
