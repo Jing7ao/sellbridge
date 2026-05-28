@@ -94,16 +94,14 @@ const STATUS_MAP: Record<string, { status: OrderStatus; label: string }> = {
   canceled: { status: "cancelled", label: "已取消" },
   failed: { status: "cancelled", label: "失败" },
 
-  // Shopee
-  unpaid: { status: "pending", label: "待付款" },
-  ready_to_ship: { status: "ready_to_ship", label: "待发货" },
+  // Shopee (unpaid/ready_to_ship 复用 Lazada 的同名键)
   processed: { status: "ready_to_ship", label: "待发货" },
   shipped: { status: "shipped", label: "已发货" },
   completed: { status: "completed", label: "已完成" },
   cancelled: { status: "cancelled", label: "已取消" },
   in_cancel: { status: "cancelled", label: "取消中" },
 
-  // TikTok
+  // TikTok (unpaid 复用 Lazada 的同名键)
   on_hold: { status: "pending", label: "待处理" },
 };
 
