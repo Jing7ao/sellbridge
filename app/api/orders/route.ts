@@ -8,12 +8,21 @@ import { db } from "../../../src/db/index";
 import { storeConnections } from "../../../src/db/schema";
 import { decryptToken } from "../../../src/crypto/encrypt";
 import { eq, and } from "drizzle-orm";
+import { getUserPlan, isFeatureAllowed } from "../../../src/billing/limits";
 
 export async function GET(req: NextRequest) {
   try {
     const auth = await getAuth();
     if (!auth) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
+    }
+
+    const plan = await getUserPlan(auth.userId);
+    if (!isFeatureAllowed(plan, "orders")) {
+      return NextResponse.json(
+        { error: "订单管理为专业版及以上功能，请升级方案" },
+        { status: 403 }
+      );
     }
 
     const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";

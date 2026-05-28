@@ -5,12 +5,25 @@ import { storeConnections } from "../../../../src/db/schema";
 import { encryptToken } from "../../../../src/crypto/encrypt";
 import { and, eq } from "drizzle-orm";
 import crypto from "node:crypto";
+import { getUserPlan, getShopLimit, getActiveShopCount } from "../../../../src/billing/limits";
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await getAuth();
     if (!auth) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
+    }
+
+    // 检查店铺连接数量限制
+    const plan = await getUserPlan(auth.userId);
+    const limit = getShopLimit(plan);
+    const currentCount = await getActiveShopCount(auth.userId);
+    if (currentCount >= limit) {
+      const planNames: Record<string, string> = { basic: "基础版", pro: "专业版", enterprise: "企业版" };
+      return NextResponse.json(
+        { error: `店铺连接数已达上限（${planNames[plan]}：最多 ${limit === Infinity ? "无限" : limit} 个店铺），请升级方案` },
+        { status: 403 }
+      );
     }
 
     const { storeDomain, accessToken } = await req.json();

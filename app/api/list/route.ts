@@ -10,6 +10,8 @@ import { db } from "../../../src/db/index";
 import { storeConnections } from "../../../src/db/schema";
 import { decryptToken } from "../../../src/crypto/encrypt";
 import { eq, and } from "drizzle-orm";
+import { deductCredits } from "../../../src/billing/limits";
+import { users } from "../../../src/db/schema";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,6 +37,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 计算所需额度：市场数 × 平台数
+    const activePlatforms: Platform[] = (platforms?.length ? platforms : ["shopify"]) as Platform[];
+    const requiredCredits = markets.length * activePlatforms.length;
+
+    // 检查积分是否足够
+    const userRows = await db.select().from(users).where(eq(users.id, auth.userId)).limit(1);
+    const currentCredits = userRows[0]?.credits ?? 0;
+    if (currentCredits < requiredCredits) {
+      return NextResponse.json(
+        { error: `额度不足，需要 ${requiredCredits} 额度，当前剩余 ${currentCredits} 额度` },
+        { status: 402 }
+      );
+    }
+
     // 图片从 base64 转为本地文件
     const imageUrls: string[] = [];
     if (Array.isArray(images)) {
@@ -47,8 +63,6 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-
-    const activePlatforms: Platform[] = (platforms?.length ? platforms : ["shopify"]) as Platform[];
 
     // 查询用户已连接的所有平台店铺
     const userStores: StoreConnection[] = [];
@@ -95,6 +109,13 @@ export async function POST(req: NextRequest) {
 
     const results = await listProduct(input, userStores.length ? userStores : undefined);
 
+    // 扣除上架额度（按实际尝试的平台×市场组合数）
+    const deducted = results.length;
+    const newBalance = await deductCredits(auth.userId, deducted, `上架商品「${title}」消耗 ${deducted} 额度`);
+    if (newBalance === null) {
+      log.error("Credit deduction failed after listing", { userId: auth.userId, title, deducted });
+    }
+
     const hasApiKey = !!(process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY);
 
     const timestamp = new Date().toISOString();
@@ -128,6 +149,7 @@ export async function POST(req: NextRequest) {
       connectedPlatforms: userStores.map((s) => s.platform),
       timestamp,
       historyId: historyEntry.id,
+      creditsRemaining: newBalance ?? currentCredits,
     });
   } catch (err) {
     log.error("Listing API error", { error: String(err) });

@@ -14,6 +14,8 @@ interface AccountInfo {
   email: string;
   name: string;
   credits: number;
+  plan: string;
+  shopLimit: number;
   createdAt: string | null;
   transactions: {
     id: string;
@@ -210,6 +212,19 @@ export default function AccountPage() {
             <Clock className="w-3 h-3" />
             加入于 {joinDate}
           </p>
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+              info.plan === "enterprise" ? "bg-violet-50 text-violet-700" :
+              info.plan === "pro" ? "bg-indigo-50 text-indigo-700" :
+              "bg-slate-100 text-slate-600"
+            }`}>
+              <BadgeCheck className="w-3 h-3" />
+              {info.plan === "enterprise" ? "企业版" : info.plan === "pro" ? "专业版" : "基础版"}
+            </span>
+            <span className="ml-2 text-xs text-slate-400">
+              {info.shopLimit === -1 ? "无限店铺" : `最多 ${info.shopLimit} 个店铺`}
+            </span>
+          </div>
         </div>
       </div>
 

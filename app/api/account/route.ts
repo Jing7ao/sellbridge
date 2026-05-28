@@ -3,6 +3,7 @@ import { getAuth } from "../../../src/auth/auth";
 import { db } from "../../../src/db/index";
 import { users, creditTransactions } from "../../../src/db/schema";
 import { eq } from "drizzle-orm";
+import { getUserPlan, getShopLimit } from "../../../src/billing/limits";
 
 export async function GET(req: NextRequest) {
   const t0 = Date.now();
@@ -25,6 +26,9 @@ export async function GET(req: NextRequest) {
     .where(eq(creditTransactions.userId, auth.userId));
   const t3 = Date.now();
 
+  const plan = await getUserPlan(auth.userId);
+  const shopLimit = getShopLimit(plan);
+
   console.log(`[api/account] auth=${t1-t0}ms user-query=${t2-t1}ms tx-query=${t3-t2}ms total=${t3-t0}ms`);
 
   return NextResponse.json({
@@ -32,6 +36,8 @@ export async function GET(req: NextRequest) {
     email: user.email,
     name: user.name,
     credits: user.credits ?? 100,
+    plan,
+    shopLimit: shopLimit === Infinity ? -1 : shopLimit,
     createdAt: user.createdAt?.toISOString() ?? null,
     transactions: transactions
       .map((t) => ({
