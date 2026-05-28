@@ -131,28 +131,21 @@ function PaymentModal({
               <p className="text-xs text-slate-400 mt-0.5">{plan.credits} 次上架额度</p>
             </div>
 
-            {/* 收款码占位区 */}
+            {/* 收款码 */}
             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-4 text-center">
               <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-3">
                 请使用微信或支付宝扫码支付
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white rounded-xl p-3 border border-slate-200 dark:border-white/10">
-                  <div className="w-full aspect-square bg-slate-100 rounded-lg flex items-center justify-center mb-2">
-                    <span className="text-xs text-slate-400">微信收款码</span>
-                  </div>
-                  <p className="text-xs text-slate-500">微信扫码</p>
+                  <img src="/qr-wechat.png" alt="微信收款码" className="w-full aspect-square object-contain rounded-lg" />
+                  <p className="text-xs text-slate-500 mt-2">微信扫码</p>
                 </div>
                 <div className="bg-white rounded-xl p-3 border border-slate-200 dark:border-white/10">
-                  <div className="w-full aspect-square bg-slate-100 rounded-lg flex items-center justify-center mb-2">
-                    <span className="text-xs text-slate-400">支付宝收款码</span>
-                  </div>
-                  <p className="text-xs text-slate-500">支付宝扫码</p>
+                  <img src="/qr-alipay.png" alt="支付宝收款码" className="w-full aspect-square object-contain rounded-lg" />
+                  <p className="text-xs text-slate-500 mt-2">支付宝扫码</p>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-3">
-                将收款码图片替换为 <code className="text-indigo-500 bg-indigo-50 px-1 rounded">public/qr-wechat.png</code> 和 <code className="text-indigo-500 bg-indigo-50 px-1 rounded">public/qr-alipay.png</code>
-              </p>
             </div>
 
             {/* 付款指引 */}
