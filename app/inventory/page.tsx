@@ -84,8 +84,8 @@ export default function InventoryPage() {
     <PageFadeIn className="page-container">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">库存管理</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">跨平台库存总览与低库存预警</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">库存总览</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">跨平台库存查看与低库存预警</p>
         </div>
         <button onClick={fetchInventory} disabled={loading} className="btn-ghost gap-2 text-sm">
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />

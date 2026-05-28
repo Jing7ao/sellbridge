@@ -119,8 +119,8 @@ export default function OrdersPage() {
     <PageFadeIn className="page-container">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">订单管理</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">跨平台订单汇总与处理</p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">订单汇总</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">跨平台订单汇总查看</p>
         </div>
         <button onClick={fetchOrders} disabled={loading} className="btn-ghost gap-2 text-sm">
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />

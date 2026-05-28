@@ -88,11 +88,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
           />
           <NavItem
             href="/orders" icon={<ShoppingBag className="w-4 h-4" />}
-            label="订单管理" active={pathname === "/orders"}
+            label="订单汇总" active={pathname === "/orders"}
           />
           <NavItem
             href="/inventory" icon={<Boxes className="w-4 h-4" />}
-            label="库存管理" active={pathname === "/inventory"}
+            label="库存总览" active={pathname === "/inventory"}
           />
           <NavItem
             href="/monitor" icon={<BarChart3 className="w-4 h-4" />}
