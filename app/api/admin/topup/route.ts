@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "../../../src/db/index";
-import { users, creditTransactions } from "../../../src/db/schema";
+import { db } from "../../../../src/db/index";
+import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 
