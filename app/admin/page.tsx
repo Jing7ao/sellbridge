@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, Shield, LogOut, RefreshCw, CreditCard,
-  BadgeCheck, Clock, X, ChevronRight, ArrowUpRight,
+  BadgeCheck, Clock, X, ChevronRight, Gift, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ interface AdminUser {
   plan: string;
   planExpiresAt: string | null;
   createdAt: string | null;
+  firstPurchase: boolean;
 }
 
 const PLAN_LABELS: Record<string, string> = { basic: "基础版", pro: "专业版", enterprise: "企业版" };
@@ -34,14 +35,12 @@ export default function AdminDashboard() {
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const router = useRouter();
 
-  // Auth check
   useEffect(() => {
     fetch("/api/admin/auth/check")
       .then((r) => { setAuthorized(r.ok); })
       .catch(() => { setAuthorized(false); });
   }, []);
 
-  // Redirect to login if not authed
   useEffect(() => {
     if (authorized === false) router.push("/admin/login");
   }, [authorized, router]);
@@ -131,7 +130,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-slate-900 rounded-xl border border-white/5 p-4">
             <p className="text-xs text-slate-400">总用户</p>
             <p className="text-2xl font-bold text-white mt-1">{users.length}</p>
@@ -143,9 +142,15 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="bg-slate-900 rounded-xl border border-white/5 p-4">
-            <p className="text-xs text-slate-400">企业版用户</p>
+            <p className="text-xs text-slate-400">企业版</p>
             <p className="text-2xl font-bold text-white mt-1">
               {users.filter((u) => u.plan === "enterprise").length}
+            </p>
+          </div>
+          <div className="bg-slate-900 rounded-xl border border-white/5 p-4">
+            <p className="text-xs text-slate-400">可首充赠送</p>
+            <p className="text-2xl font-bold text-amber-400 mt-1">
+              {users.filter((u) => u.firstPurchase && u.plan === "basic").length}
             </p>
           </div>
         </div>
@@ -160,7 +165,7 @@ export default function AdminDashboard() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-slate-400">方案</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-slate-400">额度</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 hidden md:table-cell">到期</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 hidden md:table-cell">注册时间</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-slate-400 hidden md:table-cell">首充</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -194,8 +199,15 @@ export default function AdminDashboard() {
                         <span className="text-xs text-slate-500">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right text-xs text-slate-500 hidden md:table-cell">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString("zh-CN") : "—"}
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
+                      {u.firstPurchase && u.plan === "basic" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400">
+                          <Gift className="w-3 h-3" />
+                          买一赠一
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-600">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <ChevronRight className="w-4 h-4 text-slate-500 ml-auto" />
@@ -247,8 +259,17 @@ function UserPanel({
   onUpdated: () => void;
 }) {
   const [topupAmount, setTopupAmount] = useState("");
-  const [planMonths, setPlanMonths] = useState("1");
+  const [planMonths, setPlanMonths] = useState(1);
   const [processing, setProcessing] = useState(false);
+
+  const isFirst = user.firstPurchase && user.plan === "basic";
+  const multiplier = isFirst ? 2 : 1;
+
+  // 预览计算
+  const previewProCredits = PLAN_CREDITS_MAP.pro * planMonths * multiplier;
+  const previewProMonths = planMonths * multiplier;
+  const previewEntCredits = PLAN_CREDITS_MAP.enterprise * planMonths * multiplier;
+  const previewEntMonths = planMonths * multiplier;
 
   async function handleTopup() {
     const amount = parseInt(topupAmount);
@@ -261,7 +282,8 @@ function UserPanel({
         body: JSON.stringify({ email: user.email, amount }),
       });
       if (res.ok) {
-        toast.success(`已为用户 ${user.email} 充值 ${amount} 额度`);
+        const d = await res.json();
+        toast.success(`已追加 ${d.added} 额度，余额 ${d.newBalance}`);
         setTopupAmount("");
         onUpdated();
       } else {
@@ -273,18 +295,22 @@ function UserPanel({
   }
 
   async function handleGrantPlan(plan: "pro" | "enterprise") {
-    const months = parseInt(planMonths);
-    if (!months || months <= 0) { toast.error("请输入有效月数"); return; }
+    if (!planMonths || planMonths <= 0) { toast.error("请输入有效月数"); return; }
     setProcessing(true);
     try {
       const res = await fetch("/api/admin/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, plan, months }),
+        body: JSON.stringify({ email: user.email, plan, months: planMonths }),
       });
       if (res.ok) {
         const d = await res.json();
-        toast.success(`已开通${PLAN_LABELS[plan]} ${months} 个月，额度 ${d.newBalance}`);
+        const label = PLAN_LABELS[plan];
+        if (d.firstPurchase) {
+          toast.success(`首充买一赠一！${label} ${d.totalMonths} 个月，+${d.added} 额度，余额 ${d.newBalance}`);
+        } else {
+          toast.success(`${label} ${d.totalMonths} 个月，+${d.added} 额度，余额 ${d.newBalance}`);
+        }
         onUpdated();
       } else {
         const d = await res.json();
@@ -308,7 +334,7 @@ function UserPanel({
         <div className="mb-6">
           <p className="text-sm font-bold text-white">{user.email}</p>
           {user.name && <p className="text-xs text-slate-400 mt-0.5">{user.name}</p>}
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${PLAN_COLORS[user.plan] || PLAN_COLORS.basic}`}>
               <BadgeCheck className="w-3 h-3" />
               {PLAN_LABELS[user.plan] || user.plan}
@@ -321,6 +347,12 @@ function UserPanel({
               <span className="text-xs text-slate-400 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 到期 {new Date(user.planExpiresAt).toLocaleDateString("zh-CN")}
+              </span>
+            )}
+            {isFirst && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                <Gift className="w-3 h-3" />
+                首充买一赠一
               </span>
             )}
           </div>
@@ -336,15 +368,91 @@ function UserPanel({
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all"
-                style={{ width: `${Math.min(100, (user.credits / planQuota) * 100)}%` }}
+                style={{ width: `${Math.min(100, (user.credits / Math.max(planQuota, 1)) * 100)}%` }}
               />
             </div>
           </div>
         )}
 
-        {/* Topup section */}
+        {/* 方案购买 */}
         <div className="bg-white/5 rounded-xl p-4 mb-4">
-          <p className="text-xs font-semibold text-slate-300 mb-3">手动追加额度</p>
+          <p className="text-xs font-semibold text-slate-300 mb-3">购买 / 续费方案</p>
+
+          {/* 月数选择 */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs text-slate-400">月数：</span>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 6, 12].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setPlanMonths(n)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    planMonths === n
+                      ? "bg-white/20 text-white"
+                      : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {n}月
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 首充提示 + 预览 */}
+          {isFirst && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-amber-300">首充买一赠一</p>
+                <p className="text-xs text-amber-400/80 mt-0.5">
+                  购买 {planMonths} 个月 → 实际获得 {planMonths * 2} 个月 + 双倍额度
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 方案按钮 + 预览 */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleGrantPlan("pro")}
+              disabled={processing}
+              className="text-left p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 transition-colors disabled:opacity-50"
+            >
+              <p className="text-sm font-bold text-indigo-300">专业版</p>
+              <p className="text-xs text-indigo-400/70 mt-1">
+                {isFirst ? (
+                  <>买 {planMonths} 送 {planMonths} = {previewProMonths} 个月</>
+                ) : (
+                  <>{planMonths} 个月</>
+                )}
+              </p>
+              <p className="text-lg font-bold text-indigo-200 mt-1">
+                +{previewProCredits} <span className="text-xs font-normal text-indigo-400/70">额度</span>
+              </p>
+            </button>
+            <button
+              onClick={() => handleGrantPlan("enterprise")}
+              disabled={processing}
+              className="text-left p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/20 transition-colors disabled:opacity-50"
+            >
+              <p className="text-sm font-bold text-violet-300">企业版</p>
+              <p className="text-xs text-violet-400/70 mt-1">
+                {isFirst ? (
+                  <>买 {planMonths} 送 {planMonths} = {previewEntMonths} 个月</>
+                ) : (
+                  <>{planMonths} 个月</>
+                )}
+              </p>
+              <p className="text-lg font-bold text-violet-200 mt-1">
+                +{previewEntCredits} <span className="text-xs font-normal text-violet-400/70">额度</span>
+              </p>
+            </button>
+          </div>
+        </div>
+
+        {/* 手动追加额度 */}
+        <div className="bg-white/5 rounded-xl p-4">
+          <p className="text-xs font-semibold text-slate-300 mb-3">手动追加额度（不涉及方案）</p>
           <div className="flex gap-2">
             <input
               type="number"
@@ -359,38 +467,6 @@ function UserPanel({
               className="px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50 shrink-0"
             >
               追加
-            </button>
-          </div>
-        </div>
-
-        {/* Plan section */}
-        <div className="bg-white/5 rounded-xl p-4">
-          <p className="text-xs font-semibold text-slate-300 mb-3">购买 / 续费方案</p>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs text-slate-400">月数：</span>
-            <input
-              type="number"
-              value={planMonths}
-              onChange={(e) => setPlanMonths(e.target.value)}
-              className="w-20 px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-white text-sm text-center focus:outline-none focus:border-orange-500/50"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleGrantPlan("pro")}
-              disabled={processing}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-sm font-medium hover:bg-indigo-500/20 transition-colors disabled:opacity-50"
-            >
-              <ArrowUpRight className="w-4 h-4" />
-              专业版 (500 额度)
-            </button>
-            <button
-              onClick={() => handleGrantPlan("enterprise")}
-              disabled={processing}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-300 text-sm font-medium hover:bg-violet-500/20 transition-colors disabled:opacity-50"
-            >
-              <ArrowUpRight className="w-4 h-4" />
-              企业版 (2000 额度)
             </button>
           </div>
         </div>

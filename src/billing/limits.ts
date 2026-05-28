@@ -96,6 +96,20 @@ export async function getPlanExpiry(userId: string): Promise<Date | null> {
   }
 }
 
+/** 检查用户是否从未购买过付费方案（首充买一赠一判定） */
+export async function isFirstPlanPurchase(userId: string): Promise<boolean> {
+  try {
+    const rows = await db
+      .select({ id: planPeriods.id })
+      .from(planPeriods)
+      .where(eq(planPeriods.userId, userId))
+      .limit(1);
+    return rows.length === 0;
+  } catch {
+    return true; // 查询失败时保守视为首充
+  }
+}
+
 /**
  * 授予方案周期，处理叠加/顺延逻辑
  *
@@ -148,9 +162,8 @@ export async function grantPlanPeriod(
       endsAt: endAt,
     });
 
-    // 新方案立即生效 → 额度设为方案配额，同时写 users 表确保兼容
+    // 新方案立即生效 → 同步 users 表确保兼容（额度由调用方管理）
     await db.update(users).set({
-      credits: PLAN_CREDITS[newPlan],
       plan: newPlan,
       planExpiresAt: endAt,
     }).where(eq(users.id, userId));
@@ -167,9 +180,8 @@ export async function grantPlanPeriod(
       .set({ endsAt: newActiveEnd })
       .where(eq(planPeriods.id, active.id));
 
-    // 额度重置为方案配额，同时更新 users 表到期时间
+    // 更新 users 表到期时间（额度由调用方管理）
     await db.update(users).set({
-      credits: PLAN_CREDITS[newPlan],
       planExpiresAt: newActiveEnd,
     }).where(eq(users.id, userId));
 
@@ -216,9 +228,8 @@ export async function grantPlanPeriod(
       endsAt: highEnd,
     });
 
-    // 升级 → 额度设为高级方案配额，同时更新 users 表
+    // 升级 → 同步 users 表（额度由调用方管理）
     await db.update(users).set({
-      credits: PLAN_CREDITS[newPlan],
       plan: newPlan,
       planExpiresAt: highEnd,
     }).where(eq(users.id, userId));

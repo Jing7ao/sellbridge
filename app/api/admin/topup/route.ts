@@ -3,16 +3,17 @@ import { db } from "../../../../src/db/index";
 import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
-import { grantPlanPeriod, getUserPlan, getPlanExpiry, PLAN_CREDITS } from "../../../../src/billing/limits";
+import { grantPlanPeriod, getUserPlan, getPlanExpiry, PLAN_CREDITS, isFirstPlanPurchase } from "../../../../src/billing/limits";
 import { verifyAdminToken, getAdminCookieName } from "../../../../src/auth/admin-auth";
+
+const PLAN_LABELS: Record<string, string> = { pro: "专业版", enterprise: "企业版" };
 
 /**
  * 管理员手动充值接口
  * POST { email, amount?, key?, plan?, months? }
- * 支持两种鉴权：admin cookie 或 key 参数
- * plan 可选 "pro" | "enterprise"，传入则购买/续费方案，amount 默认取方案配额
- * amount 可选，额外追加额度（超出方案配额的部分）
- * months 购买月数，默认 1
+ * plan: "pro" | "enterprise"，额度 = 方案配额 X 月数 X (首充 X2)
+ * months: 购买月数，默认 1
+ * amount: 仅追加额度（不涉及方案时使用）
  */
 export async function POST(req: NextRequest) {
   try {
@@ -38,66 +39,83 @@ export async function POST(req: NextRequest) {
     const user = userRows[0];
     const txId = crypto.randomUUID();
     const purchaseMonths = typeof months === "number" && months > 0 ? months : 1;
-    const totalDays = purchaseMonths * 30;
 
-    // 额度：plan 决定配额，amount 作为额外追加
-    const planCredits = (plan === "pro" || plan === "enterprise") ? PLAN_CREDITS[plan as "pro" | "enterprise"] : 0;
-    const extraAmount = (typeof amount === "number" && amount > 0) ? amount : 0;
-    const totalCredits = planCredits + extraAmount;
+    // 仅追加额度（不涉及方案）
+    if (!plan || (plan !== "pro" && plan !== "enterprise")) {
+      const extraAmount = typeof amount === "number" && amount > 0 ? amount : 0;
+      if (!extraAmount) {
+        return NextResponse.json({ error: "请提供 plan 或 amount" }, { status: 400 });
+      }
 
-    if (!plan && !extraAmount) {
-      return NextResponse.json({ error: "请提供 plan 或 amount" }, { status: 400 });
+      const newCredits = (user.credits ?? 0) + extraAmount;
+      await db.update(users).set({ credits: newCredits }).where(eq(users.id, user.id));
+
+      await db.insert(creditTransactions).values({
+        id: txId,
+        userId: user.id,
+        amount: extraAmount,
+        type: "topup",
+        description: `管理员手动追加 +${extraAmount} 额度`,
+      });
+
+      return NextResponse.json({
+        success: true,
+        userId: user.id,
+        email: user.email,
+        newBalance: newCredits,
+        added: extraAmount,
+        plan: await getUserPlan(user.id),
+        planExpiresAt: (await getPlanExpiry(user.id))?.toISOString() ?? null,
+      });
     }
 
-    const planLabel = plan === "enterprise" ? "企业版" : plan === "pro" ? "专业版" : null;
+    // 购买方案
+    const label = PLAN_LABELS[plan];
+    const firstPurchase = await isFirstPlanPurchase(user.id);
+    const multiplier = firstPurchase ? 2 : 1;
+    const totalMonths = purchaseMonths * multiplier;
+    const totalDays = totalMonths * 30;
+    const creditsToAdd = PLAN_CREDITS[plan as "pro" | "enterprise"] * totalMonths;
+    const extraAmount = typeof amount === "number" && amount > 0 ? amount : 0;
+    const totalAdded = creditsToAdd + extraAmount;
 
+    // 累加额度
+    const newCredits = (user.credits ?? 0) + totalAdded;
+    await db.update(users).set({ credits: newCredits }).where(eq(users.id, user.id));
+
+    // 创建交易记录
     const descParts: string[] = [];
-    if (planCredits > 0) descParts.push(`${planLabel}配额 ${planCredits} 额度`);
-    if (extraAmount > 0) descParts.push(`额外追加 ${extraAmount} 额度`);
-    if (planCredits > 0) descParts.push(`${planLabel} ${purchaseMonths} 个月（${totalDays}天）`);
+    descParts.push(`${label} ${purchaseMonths} 个月`);
+    if (firstPurchase) descParts.push("首充买一赠一");
+    if (firstPurchase && purchaseMonths > 1) descParts.push(`共 ${totalMonths} 个月`);
+    descParts.push(`+${creditsToAdd} 额度`);
+    if (extraAmount > 0) descParts.push(`(额外追加 ${extraAmount})`);
 
     await db.insert(creditTransactions).values({
       id: txId,
       userId: user.id,
-      amount: totalCredits,
+      amount: totalAdded,
       type: "topup",
       description: descParts.join("，"),
     });
 
-    // 购买/续费方案（使用 plan_periods 叠加逻辑，内部会设置额度为方案配额）
-    if (plan === "pro" || plan === "enterprise") {
-      await grantPlanPeriod(user.id, plan, totalDays);
-    }
-
-    // 如果有额外追加额度，在 grantPlanPeriod 设置的配额基础上再加
-    if (extraAmount > 0 && plan) {
-      const currentCredits = (await db.select({ credits: users.credits }).from(users).where(eq(users.id, user.id)).limit(1))[0]?.credits ?? 0;
-      await db
-        .update(users)
-        .set({ credits: currentCredits + extraAmount })
-        .where(eq(users.id, user.id));
-    } else if (!plan) {
-      // 仅追加额度，不涉及方案
-      await db
-        .update(users)
-        .set({ credits: (user.credits ?? 0) + extraAmount })
-        .where(eq(users.id, user.id));
-    }
-
-    const activePlan = await getUserPlan(user.id);
-    const expiry = await getPlanExpiry(user.id);
-    const finalBalance = (await db.select({ credits: users.credits }).from(users).where(eq(users.id, user.id)).limit(1))[0]?.credits ?? 0;
+    // 授予方案周期
+    await grantPlanPeriod(user.id, plan as "pro" | "enterprise", totalDays);
 
     return NextResponse.json({
       success: true,
       userId: user.id,
       email: user.email,
-      newBalance: finalBalance,
-      added: totalCredits,
-      plan: activePlan,
-      planExpiresAt: expiry?.toISOString() ?? null,
+      newBalance: newCredits,
+      added: totalAdded,
+      plan: await getUserPlan(user.id),
+      planExpiresAt: (await getPlanExpiry(user.id))?.toISOString() ?? null,
+      firstPurchase,
+      totalMonths,
+      totalDays,
     });
   } catch (err) {
+    console.error("[admin/topup] error:", err);
     return NextResponse.json({ error: "充值失败" }, { status: 500 });
   }
 }

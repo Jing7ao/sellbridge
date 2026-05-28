@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminToken, getAdminCookieName } from "../../../../src/auth/admin-auth";
 import { db } from "../../../../src/db/index";
 import { users } from "../../../../src/db/schema";
-import { getUserPlan, getPlanExpiry } from "../../../../src/billing/limits";
+import { getUserPlan, getPlanExpiry, isFirstPlanPurchase } from "../../../../src/billing/limits";
 import { sql, desc } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
       rows.map(async (u) => {
         const plan = await getUserPlan(u.id);
         const planExpiresAt = await getPlanExpiry(u.id);
+        const firstPurchase = await isFirstPlanPurchase(u.id);
         return {
           id: u.id,
           email: u.email,
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
           plan,
           planExpiresAt: planExpiresAt?.toISOString() ?? null,
           createdAt: u.createdAt?.toISOString() ?? null,
+          firstPurchase,
         };
       })
     );
