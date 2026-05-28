@@ -18,11 +18,29 @@ export async function GET(req: NextRequest) {
     }
 
     const plan = await getUserPlan(auth.userId);
+
+    // 检查店铺连接
+    const connectedRows = await db
+      .select()
+      .from(storeConnections)
+      .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
+
+    if (connectedRows.length === 0) {
+      return NextResponse.json({
+        blocked: true,
+        reason: "no_stores",
+        message: "请先连接店铺以获取价格数据",
+        plan,
+      });
+    }
+
     if (!isFeatureAllowed(plan, "monitor")) {
-      return NextResponse.json(
-        { error: "价格监控为专业版及以上功能，请升级方案" },
-        { status: 403 }
-      );
+      return NextResponse.json({
+        blocked: true,
+        reason: "plan_locked",
+        message: "价格监控为专业版及以上功能",
+        plan,
+      });
     }
 
     const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
@@ -31,18 +49,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "请求过于频繁，请稍后再试" }, { status: 429 });
     }
 
-    // 查询用户所有已连接店铺
-    const rows = await db
-      .select()
-      .from(storeConnections)
-      .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
-
+    // 复用之前的连接查询结果
     const shopify: ShopifyCredentials[] = [];
     const lazada: LazadaCredentials[] = [];
     const shopee: ShopeeCredentials[] = [];
     const tiktok: TiktokCredentials[] = [];
 
-    for (const row of rows) {
+    for (const row of connectedRows) {
       try {
         const creds = JSON.parse(decryptToken(row.encryptedCredentials, row.iv, row.authTag));
         switch (row.platform) {

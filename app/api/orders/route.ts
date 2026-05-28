@@ -19,10 +19,12 @@ export async function GET(req: NextRequest) {
 
     const plan = await getUserPlan(auth.userId);
     if (!isFeatureAllowed(plan, "orders")) {
-      return NextResponse.json(
-        { error: "订单管理为专业版及以上功能，请升级方案" },
-        { status: 403 }
-      );
+      return NextResponse.json({
+        blocked: true,
+        reason: "plan_locked",
+        message: "订单管理为专业版及以上功能",
+        plan,
+      });
     }
 
     const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";

@@ -15,6 +15,7 @@ const FEATURE_GATES: Record<string, PlanTier> = {
   monitor: "pro",
   orders: "pro",
   inventory: "pro",
+  adjust: "enterprise",
 };
 
 /** 从 users 表读取用户方案，过期自动降级为 basic */

@@ -102,20 +102,31 @@ export default function MonitorPage() {
   const [data, setData] = useState<MonitorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<{ reason: string; message: string; plan: string } | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"card" | "chart">("card");
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+  const [adjust, setAdjust] = useState<{ suggestions: any[]; potentialSavings: number } | null>(null);
+  const [adjustLoading, setAdjustLoading] = useState(false);
+  const [showAdjust, setShowAdjust] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setBlocked(null);
     try {
       const resp = await fetch("/api/monitor");
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
-      setData(json);
+      if (json.blocked) {
+        setBlocked(json);
+        setData(null);
+      } else if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      } else {
+        setData(json);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "获取数据失败");
     } finally {
@@ -124,6 +135,24 @@ export default function MonitorPage() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const fetchAdjust = useCallback(async () => {
+    setAdjustLoading(true);
+    try {
+      const resp = await fetch("/api/monitor/adjust");
+      const json = await resp.json();
+      if (json.blocked) {
+        toast.error(json.message);
+      } else {
+        setAdjust(json);
+        setShowAdjust(true);
+      }
+    } catch {
+      toast.error("获取调价建议失败");
+    } finally {
+      setAdjustLoading(false);
+    }
+  }, []);
 
   const categories = useMemo(() => {
     if (!data) return [];
@@ -179,10 +208,16 @@ export default function MonitorPage() {
           <p className="text-slate-500 dark:text-slate-400 text-sm">跨平台商品价格追踪与对比</p>
         </FadeInUp>
         <FadeInUp delay={0.1}>
-          <button onClick={fetchData} disabled={loading} className="btn-ghost dark:bg-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            刷新
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={fetchAdjust} disabled={adjustLoading} className="btn-primary-sm flex items-center gap-1.5">
+              <TrendingDown className="w-4 h-4" />
+              自动调价
+            </button>
+            <button onClick={fetchData} disabled={loading} className="btn-ghost dark:bg-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              刷新
+            </button>
+          </div>
         </FadeInUp>
       </div>
 
@@ -290,6 +325,47 @@ export default function MonitorPage() {
         </div>
       )}
 
+      {/* 未连接店铺 */}
+      {blocked?.reason === "no_stores" && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center animate-fade-in-up">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center mx-auto mb-5">
+            <Store className="w-8 h-8 text-indigo-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">连接店铺，获取价格数据</h3>
+          <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+            请先前往设置页面连接 Shopify / Lazada / Shopee / TikTok Shop，即可实时监控各平台商品价格。
+          </p>
+          <a
+            href="/settings"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-medium hover:from-indigo-600 hover:to-violet-600 transition-all shadow-sm"
+          >
+            前往连接店铺 <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+      )}
+
+      {/* 方案未解锁 */}
+      {blocked?.reason === "plan_locked" && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center animate-fade-in-up">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mx-auto mb-5">
+            <BarChart3 className="w-8 h-8 text-amber-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">升级方案，解锁价格监控</h3>
+          <p className="text-sm text-slate-500 mb-2 max-w-sm mx-auto">
+            价格监控为专业版及以上功能，可跨平台追踪竞品价格、查看涨跌趋势。
+          </p>
+          <p className="text-xs text-slate-400 mb-6">
+            当前方案：<span className="font-medium text-slate-600">基础版</span>
+          </p>
+          <a
+            href="/pricing"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-medium hover:from-indigo-600 hover:to-violet-600 transition-all shadow-sm"
+          >
+            查看方案 <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+      )}
+
       {data && data.snapshot.totalProducts === 0 && (
         // 无连接店铺时的空状态引导
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center animate-fade-in-up">
@@ -318,6 +394,53 @@ export default function MonitorPage() {
             <StaggerItem><StatCard icon={<TrendingDown className="w-5 h-5" />} label="降价" value={data.snapshot.downCount} gradient={STAT_GRADIENTS.emerald} /></StaggerItem>
             <StaggerItem><StatCard icon={<DollarSign className="w-5 h-5" />} label="最后更新" value={new Date(data.snapshot.timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} gradient={STAT_GRADIENTS.purple} isTime /></StaggerItem>
           </StaggerChildren>
+
+          {/* 自动调价建议 */}
+          {showAdjust && adjust && (
+            <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-5 mb-5 animate-fade-in-up">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-violet-800 flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4" />
+                    自动调价建议
+                  </h3>
+                  <p className="text-xs text-violet-600 mt-0.5">
+                    {adjust.suggestions.length} 条建议，预计可节省 ¥{adjust.potentialSavings.toFixed(2)}
+                  </p>
+                </div>
+                <button onClick={() => setShowAdjust(false)} className="text-violet-400 hover:text-violet-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {adjust.suggestions.length === 0 ? (
+                <p className="text-sm text-violet-600 text-center py-4">当前价格竞争力良好，暂不需要调整</p>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {adjust.suggestions.slice(0, 10).map((s: any, i: number) => (
+                    <div key={i} className="bg-white rounded-xl p-4 flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-800 truncate">{s.title}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {s.platformName} · {s.marketName}
+                          {" → "}
+                          竞品 {s.competitorPlatform} ¥{s.lowestCompetitorPrice.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
+                        <div className="text-right">
+                          <p className="text-sm font-mono text-slate-400 line-through">¥{s.currentPrice.toFixed(2)}</p>
+                          <p className="text-sm font-mono font-bold text-emerald-600">¥{s.suggestedPrice.toFixed(2)}</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+                          -{s.savingsPercent}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 筛选结果提示 */}
           {(search || selectedCategory || selectedPlatforms.size > 0) && (
