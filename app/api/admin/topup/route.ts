@@ -3,13 +3,14 @@ import { db } from "../../../../src/db/index";
 import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
-import { grantPlanPeriod, getUserPlan, getPlanExpiry } from "../../../../src/billing/limits";
+import { grantPlanPeriod, getUserPlan, getPlanExpiry, PLAN_CREDITS } from "../../../../src/billing/limits";
 
 /**
  * 管理员手动充值接口
- * POST { email, amount, key, plan?, months? }
+ * POST { email, amount?, key, plan?, months? }
  * key 从环境变量 ADMIN_KEY 读取
- * plan 可选 "pro" | "enterprise"，传入则购买/续费方案
+ * plan 可选 "pro" | "enterprise"，传入则购买/续费方案，amount 默认取方案配额
+ * amount 可选，额外追加额度（超出方案配额的部分）
  * months 购买月数，默认 1
  */
 export async function POST(req: NextRequest) {
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
 
-    if (!email || !amount || typeof amount !== "number" || amount <= 0) {
-      return NextResponse.json({ error: "请提供邮箱和有效的充值金额" }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: "请提供邮箱" }, { status: 400 });
     }
 
     const userRows = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -35,37 +36,60 @@ export async function POST(req: NextRequest) {
     const purchaseMonths = typeof months === "number" && months > 0 ? months : 1;
     const totalDays = purchaseMonths * 30;
 
+    // 额度：plan 决定配额，amount 作为额外追加
+    const planCredits = (plan === "pro" || plan === "enterprise") ? PLAN_CREDITS[plan] : 0;
+    const extraAmount = (typeof amount === "number" && amount > 0) ? amount : 0;
+    const totalCredits = planCredits + extraAmount;
+
+    if (!plan && !extraAmount) {
+      return NextResponse.json({ error: "请提供 plan 或 amount" }, { status: 400 });
+    }
+
     const planLabel = plan === "enterprise" ? "企业版" : plan === "pro" ? "专业版" : null;
+
+    const descParts: string[] = [];
+    if (planCredits > 0) descParts.push(`${planLabel}配额 ${planCredits} 额度`);
+    if (extraAmount > 0) descParts.push(`额外追加 ${extraAmount} 额度`);
+    if (planCredits > 0) descParts.push(`${planLabel} ${purchaseMonths} 个月（${totalDays}天）`);
 
     await db.insert(creditTransactions).values({
       id: txId,
       userId: user.id,
-      amount,
+      amount: totalCredits,
       type: "topup",
-      description: planLabel
-        ? `管理员手动充值 +${amount} 额度，${planLabel} ${purchaseMonths} 个月（${totalDays}天）`
-        : `管理员手动充值 +${amount} 额度`,
+      description: descParts.join("，"),
     });
 
-    // 购买/续费方案（使用 plan_periods 叠加逻辑）
+    // 购买/续费方案（使用 plan_periods 叠加逻辑，内部会设置额度为方案配额）
     if (plan === "pro" || plan === "enterprise") {
       await grantPlanPeriod(user.id, plan, totalDays);
     }
 
-    await db
-      .update(users)
-      .set({ credits: (user.credits ?? 0) + amount })
-      .where(eq(users.id, user.id));
+    // 如果有额外追加额度，在 grantPlanPeriod 设置的配额基础上再加
+    if (extraAmount > 0 && plan) {
+      const currentCredits = (await db.select({ credits: users.credits }).from(users).where(eq(users.id, user.id)).limit(1))[0]?.credits ?? 0;
+      await db
+        .update(users)
+        .set({ credits: currentCredits + extraAmount })
+        .where(eq(users.id, user.id));
+    } else if (!plan) {
+      // 仅追加额度，不涉及方案
+      await db
+        .update(users)
+        .set({ credits: (user.credits ?? 0) + extraAmount })
+        .where(eq(users.id, user.id));
+    }
 
     const activePlan = await getUserPlan(user.id);
     const expiry = await getPlanExpiry(user.id);
+    const finalBalance = (await db.select({ credits: users.credits }).from(users).where(eq(users.id, user.id)).limit(1))[0]?.credits ?? 0;
 
     return NextResponse.json({
       success: true,
       userId: user.id,
       email: user.email,
-      newBalance: (user.credits ?? 0) + amount,
-      added: amount,
+      newBalance: finalBalance,
+      added: totalCredits,
       plan: activePlan,
       planExpiresAt: expiry?.toISOString() ?? null,
     });

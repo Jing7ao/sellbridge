@@ -7,6 +7,12 @@ export type PlanTier = "basic" | "pro" | "enterprise";
 
 const PLAN_TIERS: Record<PlanTier, number> = { basic: 0, pro: 1, enterprise: 2 };
 
+export const PLAN_CREDITS: Record<PlanTier, number> = {
+  basic: 20,
+  pro: 500,
+  enterprise: 2000,
+};
+
 const SHOP_LIMITS: Record<PlanTier, number> = {
   basic: 1,
   pro: 5,
@@ -122,18 +128,24 @@ export async function grantPlanPeriod(
       startsAt: startAt,
       endsAt: endAt,
     });
+
+    // 新方案立即生效 → 额度设为方案配额
+    await db.update(users).set({ credits: PLAN_CREDITS[newPlan] }).where(eq(users.id, userId));
     return;
   }
 
   const activePlan = active.plan as PlanTier;
 
   if (newPlan === activePlan) {
-    // 场景 2：同方案续费 → 延长当前周期
+    // 场景 2：同方案续费 → 延长当前周期，额度重置为月配额
     const newActiveEnd = new Date(active.endsAt.getTime() + extensionMs);
     await db
       .update(planPeriods)
       .set({ endsAt: newActiveEnd })
       .where(eq(planPeriods.id, active.id));
+
+    // 额度重置为方案配额
+    await db.update(users).set({ credits: PLAN_CREDITS[newPlan] }).where(eq(users.id, userId));
 
     // 后移所有后续周期（用 JS 逐条处理，避免 raw SQL 兼容问题）
     const futureRows = await db
@@ -177,6 +189,9 @@ export async function grantPlanPeriod(
       startsAt: now,
       endsAt: highEnd,
     });
+
+    // 升级 → 额度设为高级方案配额
+    await db.update(users).set({ credits: PLAN_CREDITS[newPlan] }).where(eq(users.id, userId));
 
     // 剩余低级时间顺延
     if (remainingMs > 0) {
