@@ -110,7 +110,7 @@ function PaymentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full p-6 animate-fade-in max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
@@ -136,13 +136,13 @@ function PaymentModal({
               <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">
                 请使用微信或支付宝扫码支付
               </p>
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white rounded-xl p-4 border border-slate-200 dark:border-white/10">
-                  <img src="/qr-wechat.png" alt="微信收款码" className="w-48 h-48 mx-auto object-contain rounded-lg" />
+                  <img src="/qr-wechat.png" alt="微信收款码" className="w-44 h-44 mx-auto object-contain rounded-lg" />
                   <p className="text-sm font-medium text-slate-700 mt-2">微信扫码</p>
                 </div>
                 <div className="bg-white rounded-xl p-4 border border-slate-200 dark:border-white/10">
-                  <img src="/qr-alipay.png" alt="支付宝收款码" className="w-48 h-48 mx-auto object-contain rounded-lg" />
+                  <img src="/qr-alipay.png" alt="支付宝收款码" className="w-44 h-44 mx-auto object-contain rounded-lg" />
                   <p className="text-sm font-medium text-slate-700 mt-2">支付宝扫码</p>
                 </div>
               </div>
