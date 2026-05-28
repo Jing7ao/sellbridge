@@ -44,14 +44,20 @@ export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [stats, setStats] = useState<InventoryStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [blocked, setBlocked] = useState<{ reason: string; message: string } | null>(null);
   const [filter, setFilter] = useState<"all" | "low" | "out">("all");
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
+    setBlocked(null);
     try {
       const resp = await fetch("/api/inventory");
       const data = await resp.json();
-      if (data.error) {
+      if (data.blocked) {
+        setBlocked({ reason: data.reason, message: data.message });
+        setItems([]);
+        setStats(null);
+      } else if (data.error) {
         toast.error(data.error);
       } else {
         setItems(data.items ?? []);

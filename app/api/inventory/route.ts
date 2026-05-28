@@ -7,23 +7,11 @@ import { db } from "../../../src/db/index";
 import { storeConnections } from "../../../src/db/schema";
 import { decryptToken } from "../../../src/crypto/encrypt";
 import { eq, and } from "drizzle-orm";
-import { getUserPlan, isFeatureAllowed } from "../../../src/billing/limits";
-
 export async function GET(req: NextRequest) {
   try {
     const auth = await getAuth();
     if (!auth) {
       return NextResponse.json({ error: "未登录" }, { status: 401 });
-    }
-
-    const plan = await getUserPlan(auth.userId);
-    if (!isFeatureAllowed(plan, "inventory")) {
-      return NextResponse.json({
-        blocked: true,
-        reason: "plan_locked",
-        message: "库存管理为专业版及以上功能",
-        plan,
-      });
     }
 
     const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
@@ -36,6 +24,14 @@ export async function GET(req: NextRequest) {
       .select()
       .from(storeConnections)
       .where(and(eq(storeConnections.userId, auth.userId), eq(storeConnections.status, "active")));
+
+    if (rows.length === 0) {
+      return NextResponse.json({
+        blocked: true,
+        reason: "no_stores",
+        message: "请先连接店铺以获取库存数据",
+      });
+    }
 
     const shopify: any[] = [];
     const lazada: any[] = [];

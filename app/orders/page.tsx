@@ -74,17 +74,23 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [blocked, setBlocked] = useState<{ reason: string; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setBlocked(null);
     try {
       const params = new URLSearchParams();
       if (activeTab) params.set("status", activeTab);
       const resp = await fetch(`/api/orders?${params.toString()}`);
       const data = await resp.json();
-      if (data.error) {
+      if (data.blocked) {
+        setBlocked({ reason: data.reason, message: data.message });
+        setOrders([]);
+        setStats(null);
+      } else if (data.error) {
         toast.error(data.error);
       } else {
         setOrders(data.orders ?? []);
@@ -169,7 +175,17 @@ export default function OrdersPage() {
       </div>
 
       {/* 订单列表 */}
-      {loading ? (
+      {blocked ? (
+        <div className="text-center py-16">
+          <Package className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+          <p className="text-slate-500 dark:text-slate-400 font-medium">{blocked.message}</p>
+          <p className="text-sm text-slate-400 mt-1">
+            请先在
+            <a href="/settings" className="text-indigo-500 hover:underline mx-1">店铺设置</a>
+            中连接店铺，即可查看各平台订单
+          </p>
+        </div>
+      ) : loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="skeleton-shimmer rounded-xl h-20" />

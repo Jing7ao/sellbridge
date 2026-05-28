@@ -33,7 +33,7 @@ const PRICING_PLANS = [
     credits: 20,
     price: "免费试用",
     desc: "新用户注册即赠",
-    features: ["20 次上架额度", "AI 翻译", "基础客服", "1 个店铺连接"],
+    features: ["20 次上架额度", "AI 翻译", "基础客服", "1 个店铺连接", "订单 / 库存查看"],
     highlight: false,
   },
   {
@@ -140,6 +140,8 @@ export default function AccountPage() {
     .filter((t) => t.type === "listing_fee")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
+  const listingTxCount = info.transactions.filter((t) => t.type === "listing_fee").length;
+
   const topupCredits = info.transactions
     .filter((t) => t.type === "signup_bonus" || t.type === "topup")
     .reduce((sum, t) => sum + t.amount, 0);
@@ -237,7 +239,7 @@ export default function AccountPage() {
             <span className="text-sm font-semibold text-slate-700">已用额度</span>
           </div>
           <p className="text-3xl font-bold text-slate-900 mb-1">{usedCredits}</p>
-          <p className="text-xs text-slate-400">共 {info.transactions.length} 条记录</p>
+          <p className="text-xs text-slate-400">共 {listingTxCount} 条消耗记录</p>
         </div>
 
         {/* 用户信息卡片 */}

@@ -95,16 +95,16 @@ const STATUS_MAP: Record<string, { status: OrderStatus; label: string }> = {
   failed: { status: "cancelled", label: "失败" },
 
   // Shopee
-  UNPAID: { status: "pending", label: "待付款" },
-  READY_TO_SHIP: { status: "ready_to_ship", label: "待发货" },
-  PROCESSED: { status: "ready_to_ship", label: "待发货" },
-  SHIPPED: { status: "shipped", label: "已发货" },
-  COMPLETED: { status: "completed", label: "已完成" },
-  CANCELLED: { status: "cancelled", label: "已取消" },
-  IN_CANCEL: { status: "cancelled", label: "取消中" },
+  unpaid: { status: "pending", label: "待付款" },
+  ready_to_ship: { status: "ready_to_ship", label: "待发货" },
+  processed: { status: "ready_to_ship", label: "待发货" },
+  shipped: { status: "shipped", label: "已发货" },
+  completed: { status: "completed", label: "已完成" },
+  cancelled: { status: "cancelled", label: "已取消" },
+  in_cancel: { status: "cancelled", label: "取消中" },
 
   // TikTok
-  ON_HOLD: { status: "pending", label: "待处理" },
+  on_hold: { status: "pending", label: "待处理" },
 };
 
 // ── 转换函数 ──

@@ -91,19 +91,14 @@ function shuffle<T>(arr: T[]): T[] {
 function getDynamicPresets(): string[] {
   const shuffledCategories = shuffle(PRESET_CATEGORIES);
   const picks: string[] = [];
-  const usedLabels: string[] = [];
 
   for (const cat of shuffledCategories) {
-    if (picks.length >= 6) break;
+    if (picks.length >= 4) break;
     const shuffled = shuffle(cat.questions);
     picks.push(shuffled[0]);
-    usedLabels.push(cat.label);
-    if (picks.length < 6 && shuffled.length > 1) {
-      picks.push(shuffled[1]);
-    }
   }
 
-  return shuffle(picks).slice(0, 6);
+  return picks;
 }
 
 function loadMessages(): Message[] {
@@ -252,12 +247,12 @@ export default function AISupportPage() {
               <p className="text-sm text-slate-500 mb-8 text-center max-w-sm leading-relaxed">
                 你的跨境电商 AI 顾问，随时帮你解答平台选择、选品上架、运营推广等问题
               </p>
-              <div className="flex flex-wrap justify-center gap-2.5 max-w-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-lg w-full">
                 {presets.map((q) => (
                   <button
                     key={q}
                     onClick={() => sendMessage(q)}
-                    className="text-sm px-5 py-3 rounded-2xl bg-white text-indigo-700 border-2 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50 hover:shadow-md transition-all duration-200 font-medium"
+                    className="text-sm px-4 py-3 rounded-2xl bg-white text-indigo-700 border-2 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50 hover:shadow-md transition-all duration-200 font-medium text-left"
                   >
                     {q}
                   </button>
