@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const totalDays = purchaseMonths * 30;
 
     // 额度：plan 决定配额，amount 作为额外追加
-    const planCredits = (plan === "pro" || plan === "enterprise") ? PLAN_CREDITS[plan] : 0;
+    const planCredits = (plan === "pro" || plan === "enterprise") ? PLAN_CREDITS[plan as "pro" | "enterprise"] : 0;
     const extraAmount = (typeof amount === "number" && amount > 0) ? amount : 0;
     const totalCredits = planCredits + extraAmount;
 
