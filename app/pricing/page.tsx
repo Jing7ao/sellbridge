@@ -133,17 +133,17 @@ function PaymentModal({
 
             {/* 收款码 */}
             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-4 text-center">
-              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-3">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">
                 请使用微信或支付宝扫码支付
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-xl p-3 border border-slate-200 dark:border-white/10">
-                  <img src="/qr-wechat.png" alt="微信收款码" className="w-full aspect-square object-contain rounded-lg" />
-                  <p className="text-xs text-slate-500 mt-2">微信扫码</p>
+              <div className="space-y-4">
+                <div className="bg-white rounded-xl p-4 border border-slate-200 dark:border-white/10">
+                  <img src="/qr-wechat.png" alt="微信收款码" className="w-48 h-48 mx-auto object-contain rounded-lg" />
+                  <p className="text-sm font-medium text-slate-700 mt-2">微信扫码</p>
                 </div>
-                <div className="bg-white rounded-xl p-3 border border-slate-200 dark:border-white/10">
-                  <img src="/qr-alipay.png" alt="支付宝收款码" className="w-full aspect-square object-contain rounded-lg" />
-                  <p className="text-xs text-slate-500 mt-2">支付宝扫码</p>
+                <div className="bg-white rounded-xl p-4 border border-slate-200 dark:border-white/10">
+                  <img src="/qr-alipay.png" alt="支付宝收款码" className="w-48 h-48 mx-auto object-contain rounded-lg" />
+                  <p className="text-sm font-medium text-slate-700 mt-2">支付宝扫码</p>
                 </div>
               </div>
             </div>
