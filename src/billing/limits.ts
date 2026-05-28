@@ -17,22 +17,36 @@ const FEATURE_GATES: Record<string, PlanTier> = {
   inventory: "pro",
 };
 
-/** 从 users 表读取用户方案，未设置则默认 basic */
+/** 从 users 表读取用户方案，过期自动降级为 basic */
 export async function getUserPlan(userId: string): Promise<PlanTier> {
   const rows = await db
-    .select({ plan: users.plan })
+    .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
-  const plan = rows[0]?.plan;
-  if (plan === "pro" || plan === "enterprise") return plan;
-  return "basic";
+  const { plan, planExpiresAt } = rows[0] ?? {};
+
+  // 未设置付费方案
+  if (plan !== "pro" && plan !== "enterprise") return "basic";
+
+  // 已过期，自动降级
+  if (planExpiresAt && new Date(planExpiresAt) <= new Date()) {
+    await db.update(users).set({ plan: "basic", planExpiresAt: null }).where(eq(users.id, userId));
+    return "basic";
+  }
+
+  return plan;
 }
 
-/** 更新用户方案（管理员充值后调用） */
-export async function setUserPlan(userId: string, plan: PlanTier): Promise<void> {
-  await db.update(users).set({ plan }).where(eq(users.id, userId));
+/** 更新用户方案并设置到期时间（默认30天） */
+export async function setUserPlan(userId: string, plan: PlanTier, days = 30): Promise<void> {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + days);
+  await db
+    .update(users)
+    .set({ plan, planExpiresAt: expiresAt })
+    .where(eq(users.id, userId));
 }
 
 /** 获取方案允许的店铺连接数 */

@@ -15,6 +15,7 @@ interface AccountInfo {
   name: string;
   credits: number;
   plan: string;
+  planExpiresAt: string | null;
   shopLimit: number;
   createdAt: string | null;
   transactions: {
@@ -223,6 +224,9 @@ export default function AccountPage() {
             </span>
             <span className="ml-2 text-xs text-slate-400">
               {info.shopLimit === -1 ? "无限店铺" : `最多 ${info.shopLimit} 个店铺`}
+              {info.planExpiresAt && (
+                ` · 到期 ${new Date(info.planExpiresAt).toLocaleDateString("zh-CN")}`
+              )}
             </span>
           </div>
         </div>

@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   name: text("name"),
   credits: integer("credits").notNull().default(100),
   plan: text("plan").default("basic"),
+  planExpiresAt: timestamp("plan_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

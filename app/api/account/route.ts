@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
     name: user.name,
     credits: user.credits ?? 100,
     plan,
+    planExpiresAt: user.planExpiresAt?.toISOString() ?? null,
     shopLimit: shopLimit === Infinity ? -1 : shopLimit,
     createdAt: user.createdAt?.toISOString() ?? null,
     transactions: transactions
