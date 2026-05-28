@@ -1,18 +1,20 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { Check, X, Copy, Wallet, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const PLANS = [
   {
     name: "基础版",
     nameEn: "Basic",
-    credits: 50,
+    credits: 20,
     price: "免费",
     period: "",
     desc: "新用户注册即赠，体验核心功能",
     features: [
-      "50 次上架额度",
+      "20 次上架额度",
       "AI 智能翻译（6 种语言）",
       "基础 AI 客服",
       "1 个店铺连接",
@@ -41,8 +43,8 @@ const PLANS = [
       "邮件优先支持",
     ],
     highlight: true,
-    cta: "升级专业版",
-    href: "/account",
+    cta: "立即购买",
+    planId: "pro",
     badge: "推荐",
   },
   {
@@ -63,8 +65,8 @@ const PLANS = [
       "1v1 专属支持",
     ],
     highlight: false,
-    cta: "升级企业版",
-    href: "/account",
+    cta: "立即购买",
+    planId: "enterprise",
   },
 ];
 
@@ -91,7 +93,140 @@ const FAQS = [
   },
 ];
 
+function PaymentModal({
+  plan,
+  open,
+  onClose,
+}: {
+  plan: (typeof PLANS)[number] | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState<"pay" | "done">("pay");
+  const [email, setEmail] = useState("");
+
+  if (!open || !plan) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {step === "pay" ? (
+          <>
+            <div className="text-center mb-5">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mx-auto mb-3">
+                <Wallet className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">购买 {plan.name}</h3>
+              <p className="text-2xl font-extrabold text-indigo-600 mt-1">
+                {plan.price}<span className="text-sm font-normal text-slate-400">{plan.period}</span>
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">{plan.credits} 次上架额度</p>
+            </div>
+
+            {/* 收款码占位区 */}
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-4 text-center">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-3">
+                请使用微信或支付宝扫码支付
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl p-3 border border-slate-200 dark:border-white/10">
+                  <div className="w-full aspect-square bg-slate-100 rounded-lg flex items-center justify-center mb-2">
+                    <span className="text-xs text-slate-400">微信收款码</span>
+                  </div>
+                  <p className="text-xs text-slate-500">微信扫码</p>
+                </div>
+                <div className="bg-white rounded-xl p-3 border border-slate-200 dark:border-white/10">
+                  <div className="w-full aspect-square bg-slate-100 rounded-lg flex items-center justify-center mb-2">
+                    <span className="text-xs text-slate-400">支付宝收款码</span>
+                  </div>
+                  <p className="text-xs text-slate-500">支付宝扫码</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-3">
+                将收款码图片替换为 <code className="text-indigo-500 bg-indigo-50 px-1 rounded">public/qr-wechat.png</code> 和 <code className="text-indigo-500 bg-indigo-50 px-1 rounded">public/qr-alipay.png</code>
+              </p>
+            </div>
+
+            {/* 付款指引 */}
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">付款后操作</p>
+              <ol className="text-xs text-amber-700 dark:text-amber-300 space-y-1.5">
+                <li>1. 截图付款成功页面</li>
+                <li>2. 发送至 <span className="font-bold">1363929257@qq.com</span></li>
+                <li>3. 邮件正文写上您的<span className="font-bold">注册邮箱</span></li>
+                <li>4. 5 分钟内额度到账（工作时间）</li>
+              </ol>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText("1363929257@qq.com");
+                  toast.success("邮箱已复制");
+                }}
+                className="mt-2 flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium"
+              >
+                <Copy className="w-3 h-3" /> 复制邮箱
+              </button>
+            </div>
+
+            <button
+              onClick={() => setStep("done")}
+              className="btn-primary w-full flex items-center justify-center gap-2"
+            >
+              已完成付款 <ArrowRight className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <Check className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">付款确认中</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              请将付款截图发送至 <span className="font-bold">1363929257@qq.com</span>，<br />
+              备注注册邮箱，5 分钟内到账。
+            </p>
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-4 text-left">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">已发送截图？填写邮箱优先处理：</p>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 mb-2"
+              />
+              <button
+                onClick={() => {
+                  if (email) {
+                    toast.success("已记录，额度将优先到账");
+                  } else {
+                    toast.error("请填写注册邮箱");
+                  }
+                }}
+                className="w-full py-2 text-sm font-medium rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+              >
+                提交
+              </button>
+            </div>
+            <button onClick={onClose} className="text-sm text-slate-400 hover:text-slate-600">
+              关闭
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PricingPage() {
+  const [paymentPlan, setPaymentPlan] = useState<(typeof PLANS)[number] | null>(null);
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Hero */}
@@ -142,19 +277,35 @@ export default function PricingPage() {
               ))}
             </ul>
 
-            <Link
-              href={plan.href}
-              className={`block text-center py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                plan.highlight
-                  ? "btn-primary"
-                  : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10"
-              }`}
-            >
-              {plan.cta}
-            </Link>
+            {plan.href ? (
+              <Link
+                href={plan.href}
+                className={`block text-center py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  plan.highlight
+                    ? "btn-primary"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10"
+                }`}
+              >
+                {plan.cta}
+              </Link>
+            ) : (
+              <button
+                onClick={() => setPaymentPlan(plan)}
+                className={`block text-center py-2.5 rounded-xl text-sm font-semibold transition-all w-full ${
+                  plan.highlight
+                    ? "btn-primary"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10"
+                }`}
+              >
+                {plan.cta}
+              </button>
+            )}
           </div>
         ))}
       </div>
+
+      {/* Payment Modal */}
+      <PaymentModal plan={paymentPlan} open={!!paymentPlan} onClose={() => setPaymentPlan(null)} />
 
       {/* FAQ */}
       <div className="bg-slate-50 dark:bg-slate-900 py-16">
@@ -176,7 +327,7 @@ export default function PricingPage() {
       {/* CTA */}
       <div className="max-w-2xl mx-auto px-6 py-16 text-center">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">准备好开始了吗？</h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">注册即送 50 次免费上架额度，无需绑定信用卡。</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">注册即送 20 次免费上架额度，无需绑定信用卡。</p>
         <Link href="/login" className="btn-primary mt-6 inline-flex items-center gap-2">
           免费注册
         </Link>

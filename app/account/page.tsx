@@ -160,7 +160,7 @@ export default function AccountPage() {
               <div>
                 <p className="text-sm font-bold text-white">新用户专属礼遇</p>
                 <p className="text-xs text-white/80 mt-0.5">
-                  注册即送 100 额度 · 首次充值买一赠一 · 邀请好友各得 50 额度
+                  注册即送 20 额度 · 首次充值买一赠一 · 邀请好友各得 50 额度
                 </p>
               </div>
             </div>

@@ -38,7 +38,16 @@ export async function POST(req: NextRequest) {
       name: name || email.split("@")[0] || undefined,
     });
 
-    // 邀请奖励：双方各得 50 积分
+    // 新用户注册赠送 20 额度
+    await db.insert(creditTransactions).values({
+      id: crypto.randomUUID(),
+      userId: id,
+      amount: 20,
+      type: "signup_bonus",
+      description: "新用户注册赠送",
+    });
+
+    // 邀请奖励：双方各得 50 额度
     if (invite && typeof invite === "string" && invite.length >= 8) {
       const inviterRows = await db.select().from(users).where(eq(users.id, invite)).limit(1);
       if (inviterRows[0]) {
@@ -60,13 +69,18 @@ export async function POST(req: NextRequest) {
         ]);
         await db
           .update(users)
-          .set({ credits: (inviterRows[0].credits ?? 100) + 50 })
+          .set({ credits: (inviterRows[0].credits ?? 20) + 50 })
           .where(eq(users.id, inviterRows[0].id));
         await db
           .update(users)
-          .set({ credits: 150 })
+          .set({ credits: 70 })
           .where(eq(users.id, id));
       }
+    } else {
+      await db
+        .update(users)
+        .set({ credits: 20 })
+        .where(eq(users.id, id));
     }
 
     return NextResponse.json({ success: true }, { status: 201 });
