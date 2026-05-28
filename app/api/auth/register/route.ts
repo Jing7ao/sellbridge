@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       email,
       passwordHash,
       name: name || email.split("@")[0] || undefined,
+      plan: "basic",
     });
 
     // 新用户注册赠送 20 额度

@@ -17,23 +17,22 @@ const FEATURE_GATES: Record<string, PlanTier> = {
   inventory: "pro",
 };
 
-/** 根据累计 topup 充值金额判断用户方案 */
+/** 从 users 表读取用户方案，未设置则默认 basic */
 export async function getUserPlan(userId: string): Promise<PlanTier> {
-  const allTx = await db
-    .select()
-    .from(creditTransactions)
-    .where(eq(creditTransactions.userId, userId));
+  const rows = await db
+    .select({ plan: users.plan })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
 
-  let totalTopup = 0;
-  for (const tx of allTx) {
-    if (tx.type === "topup") {
-      totalTopup += tx.amount;
-    }
-  }
-
-  if (totalTopup >= 300) return "enterprise";
-  if (totalTopup >= 100) return "pro";
+  const plan = rows[0]?.plan;
+  if (plan === "pro" || plan === "enterprise") return plan;
   return "basic";
+}
+
+/** 更新用户方案（管理员充值后调用） */
+export async function setUserPlan(userId: string, plan: PlanTier): Promise<void> {
+  await db.update(users).set({ plan }).where(eq(users.id, userId));
 }
 
 /** 获取方案允许的店铺连接数 */
