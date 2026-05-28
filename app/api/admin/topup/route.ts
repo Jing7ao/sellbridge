@@ -3,17 +3,18 @@ import { db } from "../../../../src/db/index";
 import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
-import { setUserPlan } from "../../../../src/billing/limits";
 
 /**
  * 管理员手动充值接口
- * POST { email, amount, key, plan? }
+ * POST { email, amount, key, plan?, months? }
  * key 从环境变量 ADMIN_KEY 读取
- * plan 可选 "pro" | "enterprise"，传入则升级方案并设置 30 天到期
+ * plan 可选 "pro" | "enterprise"，传入则升级方案
+ * months 购买月数，默认 1，传入则按 N×30 天计算
+ * 如果用户已有同方案且未到期，从当前到期日顺延
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, amount, key, plan } = await req.json();
+    const { email, amount, key, plan, months } = await req.json();
 
     const adminKey = process.env.ADMIN_KEY || "sellbridge-admin-2026";
     if (!key || key !== adminKey) {
@@ -31,6 +32,8 @@ export async function POST(req: NextRequest) {
 
     const user = userRows[0];
     const txId = crypto.randomUUID();
+    const purchaseMonths = typeof months === "number" && months > 0 ? months : 1;
+    const totalDays = purchaseMonths * 30;
 
     const planLabel = plan === "enterprise" ? "企业版" : plan === "pro" ? "专业版" : null;
 
@@ -40,13 +43,25 @@ export async function POST(req: NextRequest) {
       amount,
       type: "topup",
       description: planLabel
-        ? `管理员手动充值 +${amount} 额度，方案升级为 ${planLabel}（30天）`
+        ? `管理员手动充值 +${amount} 额度，${planLabel} ${purchaseMonths} 个月（${totalDays}天）`
         : `管理员手动充值 +${amount} 额度`,
     });
 
-    // 升级方案（含30天到期）
+    // 升级/续费方案
     if (plan === "pro" || plan === "enterprise") {
-      await setUserPlan(user.id, plan, 30);
+      // 如果用户已有同方案且未到期，从当前到期日顺延
+      const now = new Date();
+      const currentExpiry = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
+      const baseDate = (currentExpiry && currentExpiry > now && user.plan === plan)
+        ? currentExpiry
+        : now;
+      const expiresAt = new Date(baseDate);
+      expiresAt.setDate(expiresAt.getDate() + totalDays);
+
+      await db
+        .update(users)
+        .set({ plan, planExpiresAt: expiresAt })
+        .where(eq(users.id, user.id));
     }
 
     await db

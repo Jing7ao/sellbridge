@@ -30,10 +30,10 @@ interface AccountInfo {
 const PRICING_PLANS = [
   {
     name: "基础版",
-    credits: 50,
+    credits: 20,
     price: "免费试用",
     desc: "新用户注册即赠",
-    features: ["50 次上架额度", "AI 翻译", "基础客服", "1 个店铺连接"],
+    features: ["20 次上架额度", "AI 翻译", "基础客服", "1 个店铺连接"],
     highlight: false,
   },
   {
@@ -173,6 +173,47 @@ export default function AccountPage() {
         </button>
       )}
 
+      {/* 方案到期提醒 */}
+      {info.plan !== "basic" && info.planExpiresAt && (() => {
+        const now = new Date();
+        const expiry = new Date(info.planExpiresAt);
+        const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysLeft <= 3) {
+          return (
+            <div className={`rounded-2xl p-4 mb-6 flex items-center justify-between ${
+              daysLeft <= 0
+                ? "bg-red-50 border border-red-200"
+                : "bg-amber-50 border border-amber-200"
+            }`}>
+              <div className="flex items-center gap-3">
+                <Clock className={`w-5 h-5 ${daysLeft <= 0 ? "text-red-500" : "text-amber-500"}`} />
+                <div>
+                  <p className={`text-sm font-semibold ${daysLeft <= 0 ? "text-red-700" : "text-amber-800"}`}>
+                    {daysLeft <= 0
+                      ? `${info.plan === "enterprise" ? "企业版" : "专业版"}已到期，功能已受限`
+                      : `方案将于 ${daysLeft} 天后到期`}
+                  </p>
+                  <p className={`text-xs ${daysLeft <= 0 ? "text-red-600" : "text-amber-700"}`}>
+                    请尽快续费以继续使用{info.plan === "enterprise" ? "企业版" : "专业版"}全部功能
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/pricing"
+                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  daysLeft <= 0
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : "bg-amber-500 text-white hover:bg-amber-600"
+                }`}
+              >
+                立即续费
+              </a>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       {/* 三卡片概览 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {/* 余额卡片 */}
@@ -261,7 +302,7 @@ export default function AccountPage() {
                   </li>
                 ))}
               </ul>
-              {plan.credits === 50 ? (
+              {plan.price === "免费试用" ? (
                 <button
                   className="w-full mt-5 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 cursor-default"
                   disabled
