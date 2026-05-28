@@ -1,9 +1,11 @@
 import { db } from "../db/index";
-import { users, creditTransactions, storeConnections } from "../db/schema";
-import { eq, sql } from "drizzle-orm";
+import { users, creditTransactions, storeConnections, planPeriods } from "../db/schema";
+import { eq, and, lte, gt, desc, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 
 export type PlanTier = "basic" | "pro" | "enterprise";
+
+const PLAN_TIERS: Record<PlanTier, number> = { basic: 0, pro: 1, enterprise: 2 };
 
 const SHOP_LIMITS: Record<PlanTier, number> = {
   basic: 1,
@@ -18,58 +20,244 @@ const FEATURE_GATES: Record<string, PlanTier> = {
   adjust: "enterprise",
 };
 
-/** 从 users 表读取用户方案，过期自动降级为 basic */
-export async function getUserPlan(userId: string): Promise<PlanTier> {
-  try {
-    const rows = await db
-      .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    const { plan, planExpiresAt } = rows[0] ?? {};
-
-    if (plan !== "pro" && plan !== "enterprise") return "basic";
-
-    if (planExpiresAt && new Date(planExpiresAt) <= new Date()) {
-      try {
-        await db.update(users).set({ plan: "basic", planExpiresAt: null }).where(eq(users.id, userId));
-      } catch { /* 列可能不存在，忽略 */ }
-      return "basic";
-    }
-
-    return plan;
-  } catch {
-    // plan / plan_expires_at 列尚未同步到数据库，回退到 basic
-    return "basic";
-  }
-}
-
-/** 更新用户方案并设置到期时间（默认30天） */
-export async function setUserPlan(userId: string, plan: PlanTier, days = 30): Promise<void> {
-  try {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + days);
-    await db
-      .update(users)
-      .set({ plan, planExpiresAt: expiresAt })
-      .where(eq(users.id, userId));
-  } catch {
-    // plan 列不存在，忽略
-  }
-}
-
-/** 获取方案允许的店铺连接数 */
 export function getShopLimit(plan: PlanTier): number {
   return SHOP_LIMITS[plan];
 }
 
-/** 检查功能是否对用户方案开放 */
 export function isFeatureAllowed(plan: PlanTier, feature: string): boolean {
   const required = FEATURE_GATES[feature];
   if (!required) return true;
-  const tiers: PlanTier[] = ["basic", "pro", "enterprise"];
-  return tiers.indexOf(plan) >= tiers.indexOf(required);
+  return PLAN_TIERS[plan] >= PLAN_TIERS[required];
+}
+
+/** 从 plan_periods 查询当前活跃方案 */
+export async function getUserPlan(userId: string): Promise<PlanTier> {
+  try {
+    const now = new Date();
+    const rows = await db
+      .select({ plan: planPeriods.plan })
+      .from(planPeriods)
+      .where(
+        and(
+          eq(planPeriods.userId, userId),
+          lte(planPeriods.startsAt, now),
+          gt(planPeriods.endsAt, now),
+        )
+      )
+      .orderBy(planPeriods.startsAt)
+      .limit(1);
+
+    const plan = rows[0]?.plan;
+    if (plan === "pro" || plan === "enterprise") return plan;
+    return "basic";
+  } catch {
+    // plan_periods 表可能尚未创建
+    return "basic";
+  }
+}
+
+/** 返回最远的到期时间（用于前端显示） */
+export async function getPlanExpiry(userId: string): Promise<Date | null> {
+  try {
+    const rows = await db
+      .select({ endsAt: planPeriods.endsAt })
+      .from(planPeriods)
+      .where(eq(planPeriods.userId, userId))
+      .orderBy(desc(planPeriods.endsAt))
+      .limit(1);
+    return rows[0]?.endsAt ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 授予方案周期，处理叠加/顺延逻辑
+ *
+ * - 无活跃周期 → 从今天开始新建
+ * - 同方案续费 → 延长当前周期，后移后续周期
+ * - 低→高升级 → 截断当前，插入高级，剩余低级时间顺延
+ * - 高→低购买 → 排队到当前周期结束后
+ */
+export async function grantPlanPeriod(
+  userId: string,
+  newPlan: PlanTier,
+  durationDays: number,
+): Promise<void> {
+  const now = new Date();
+  const extensionMs = durationDays * 24 * 60 * 60 * 1000;
+
+  // 查找当前活跃周期
+  const activeRows = await db
+    .select()
+    .from(planPeriods)
+    .where(
+      and(
+        eq(planPeriods.userId, userId),
+        lte(planPeriods.startsAt, now),
+        gt(planPeriods.endsAt, now),
+      )
+    )
+    .orderBy(planPeriods.startsAt)
+    .limit(1);
+
+  const active = activeRows[0];
+
+  if (!active) {
+    // 场景 1：无活跃周期 → 找最晚的周期末尾接上，避免重叠
+    const lastRows = await db
+      .select({ endsAt: planPeriods.endsAt })
+      .from(planPeriods)
+      .where(eq(planPeriods.userId, userId))
+      .orderBy(desc(planPeriods.endsAt))
+      .limit(1);
+
+    const startAt = lastRows[0]?.endsAt && lastRows[0].endsAt > now ? lastRows[0].endsAt : now;
+    const endAt = new Date(startAt.getTime() + extensionMs);
+
+    await db.insert(planPeriods).values({
+      id: crypto.randomUUID(),
+      userId,
+      plan: newPlan,
+      startsAt: startAt,
+      endsAt: endAt,
+    });
+    return;
+  }
+
+  const activePlan = active.plan as PlanTier;
+
+  if (newPlan === activePlan) {
+    // 场景 2：同方案续费 → 延长当前周期
+    const newActiveEnd = new Date(active.endsAt.getTime() + extensionMs);
+    await db
+      .update(planPeriods)
+      .set({ endsAt: newActiveEnd })
+      .where(eq(planPeriods.id, active.id));
+
+    // 后移所有后续周期（用 JS 逐条处理，避免 raw SQL 兼容问题）
+    const futureRows = await db
+      .select()
+      .from(planPeriods)
+      .where(
+        and(
+          eq(planPeriods.userId, userId),
+          gt(planPeriods.startsAt, active.startsAt),
+        )
+      );
+
+    for (const row of futureRows) {
+      await db
+        .update(planPeriods)
+        .set({
+          startsAt: new Date(row.startsAt.getTime() + extensionMs),
+          endsAt: new Date(row.endsAt.getTime() + extensionMs),
+        })
+        .where(eq(planPeriods.id, row.id));
+    }
+    return;
+  }
+
+  if (PLAN_TIERS[newPlan] > PLAN_TIERS[activePlan]) {
+    // 场景 3：低→高升级
+    const remainingMs = active.endsAt.getTime() - now.getTime();
+
+    // 截断当前到 now
+    await db
+      .update(planPeriods)
+      .set({ endsAt: now })
+      .where(eq(planPeriods.id, active.id));
+
+    // 插入高级周期
+    const highEnd = new Date(now.getTime() + extensionMs);
+    await db.insert(planPeriods).values({
+      id: crypto.randomUUID(),
+      userId,
+      plan: newPlan,
+      startsAt: now,
+      endsAt: highEnd,
+    });
+
+    // 剩余低级时间顺延
+    if (remainingMs > 0) {
+      const residualStart = new Date(highEnd.getTime());
+      await db.insert(planPeriods).values({
+        id: crypto.randomUUID(),
+        userId,
+        plan: activePlan,
+        startsAt: residualStart,
+        endsAt: new Date(residualStart.getTime() + remainingMs),
+      });
+    }
+
+    // 后移所有其他 future 周期（排除刚插入的两条）
+    const futureRows = await db
+      .select()
+      .from(planPeriods)
+      .where(
+        and(
+          eq(planPeriods.userId, userId),
+          gt(planPeriods.startsAt, now),
+        )
+      );
+
+    for (const row of futureRows) {
+      // 跳过刚插入的高级周期和 residual（它们位置已正确）
+      const isNewHigh = row.plan === newPlan && row.startsAt.getTime() === now.getTime();
+      const isResidual = row.plan === activePlan && remainingMs > 0 && row.startsAt.getTime() === highEnd.getTime();
+      if (isNewHigh || isResidual) continue;
+
+      await db
+        .update(planPeriods)
+        .set({
+          startsAt: new Date(row.startsAt.getTime() + extensionMs),
+          endsAt: new Date(row.endsAt.getTime() + extensionMs),
+        })
+        .where(eq(planPeriods.id, row.id));
+    }
+    return;
+  }
+
+  // 场景 4：高→低购买 → 排队到最后
+  const lastRows = await db
+    .select({ endsAt: planPeriods.endsAt })
+    .from(planPeriods)
+    .where(eq(planPeriods.userId, userId))
+    .orderBy(desc(planPeriods.endsAt))
+    .limit(1);
+
+  const anchor = lastRows[0]?.endsAt ?? now;
+  const startAt = anchor > now ? anchor : now;
+  const endAt = new Date(startAt.getTime() + extensionMs);
+
+  // 已有同方案排队则延长
+  const queued = await db
+    .select()
+    .from(planPeriods)
+    .where(
+      and(
+        eq(planPeriods.userId, userId),
+        eq(planPeriods.plan, newPlan),
+        gt(planPeriods.startsAt, now),
+      )
+    )
+    .orderBy(planPeriods.startsAt)
+    .limit(1);
+
+  if (queued[0]) {
+    await db
+      .update(planPeriods)
+      .set({ endsAt: endAt })
+      .where(eq(planPeriods.id, queued[0].id));
+  } else {
+    await db.insert(planPeriods).values({
+      id: crypto.randomUUID(),
+      userId,
+      plan: newPlan,
+      startsAt: startAt,
+      endsAt: endAt,
+    });
+  }
 }
 
 /** 扣除积分。返回扣除后的余额，额度不足时返回 null */

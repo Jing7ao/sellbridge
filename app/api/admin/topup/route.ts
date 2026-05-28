@@ -3,14 +3,14 @@ import { db } from "../../../../src/db/index";
 import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
+import { grantPlanPeriod, getUserPlan, getPlanExpiry } from "../../../../src/billing/limits";
 
 /**
  * 管理员手动充值接口
  * POST { email, amount, key, plan?, months? }
  * key 从环境变量 ADMIN_KEY 读取
- * plan 可选 "pro" | "enterprise"，传入则升级方案
- * months 购买月数，默认 1，传入则按 N×30 天计算
- * 如果用户已有同方案且未到期，从当前到期日顺延
+ * plan 可选 "pro" | "enterprise"，传入则购买/续费方案
+ * months 购买月数，默认 1
  */
 export async function POST(req: NextRequest) {
   try {
@@ -47,21 +47,9 @@ export async function POST(req: NextRequest) {
         : `管理员手动充值 +${amount} 额度`,
     });
 
-    // 升级/续费方案
+    // 购买/续费方案（使用 plan_periods 叠加逻辑）
     if (plan === "pro" || plan === "enterprise") {
-      // 如果用户已有同方案且未到期，从当前到期日顺延
-      const now = new Date();
-      const currentExpiry = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
-      const baseDate = (currentExpiry && currentExpiry > now && user.plan === plan)
-        ? currentExpiry
-        : now;
-      const expiresAt = new Date(baseDate);
-      expiresAt.setDate(expiresAt.getDate() + totalDays);
-
-      await db
-        .update(users)
-        .set({ plan, planExpiresAt: expiresAt })
-        .where(eq(users.id, user.id));
+      await grantPlanPeriod(user.id, plan, totalDays);
     }
 
     await db
@@ -69,12 +57,8 @@ export async function POST(req: NextRequest) {
       .set({ credits: (user.credits ?? 0) + amount })
       .where(eq(users.id, user.id));
 
-    // 读取更新后的到期时间
-    const updated = await db
-      .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
-      .from(users)
-      .where(eq(users.id, user.id))
-      .limit(1);
+    const activePlan = await getUserPlan(user.id);
+    const expiry = await getPlanExpiry(user.id);
 
     return NextResponse.json({
       success: true,
@@ -82,8 +66,8 @@ export async function POST(req: NextRequest) {
       email: user.email,
       newBalance: (user.credits ?? 0) + amount,
       added: amount,
-      plan: updated[0]?.plan ?? "basic",
-      planExpiresAt: updated[0]?.planExpiresAt?.toISOString() ?? null,
+      plan: activePlan,
+      planExpiresAt: expiry?.toISOString() ?? null,
     });
   } catch (err) {
     return NextResponse.json({ error: "充值失败" }, { status: 500 });

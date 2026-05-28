@@ -45,6 +45,15 @@ export const listingHistory = pgTable("listing_history", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const planPeriods = pgTable("plan_periods", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  plan: text("plan").notNull(),
+  startsAt: timestamp("starts_at").notNull(),
+  endsAt: timestamp("ends_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const priceSnapshots = pgTable("price_snapshots", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
