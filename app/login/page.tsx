@@ -25,6 +25,18 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailValid = email.length === 0 || emailRegex.test(email);
+
+  function validateEmail(val: string) {
+    if (val.length > 0 && !emailRegex.test(val)) {
+      setEmailError("请输入有效的邮箱地址");
+    } else {
+      setEmailError("");
+    }
+  }
 
   const passwordCheck = useMemo(() => {
     if (mode === "register") return checkPassword(password);
@@ -201,11 +213,19 @@ export default function LoginPage() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+                    onBlur={(e) => validateEmail(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 shadow-sm transition-all duration-200 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border shadow-sm transition-all duration-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 ${
+                      emailError
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-50"
+                        : "border-slate-200 focus:border-indigo-400 focus:ring-indigo-50"
+                    }`}
                     placeholder="your@email.com"
                   />
+                  {emailError && (
+                    <p className="text-xs text-red-500 mt-1 animate-fade-in">{emailError}</p>
+                  )}
                 </div>
               </div>
 
@@ -287,7 +307,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading || !email || !password || !passwordOk}
+                disabled={loading || !email || !password || !passwordOk || !emailValid}
                 className="btn-primary w-full"
               >
                 {loading ? (

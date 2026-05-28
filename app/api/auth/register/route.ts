@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "邮箱和密码不能为空" }, { status: 400 });
     }
 
-    if (typeof email !== "string" || !email.includes("@")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (typeof email !== "string" || !emailRegex.test(email)) {
       return NextResponse.json({ error: "请提供有效的邮箱地址" }, { status: 400 });
     }
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
           .where(eq(users.id, inviterRows[0].id));
         await db
           .update(users)
-          .set({ credits: 70 })
+          .set({ credits: 20 + 50 })
           .where(eq(users.id, id));
       }
     } else {
