@@ -36,8 +36,9 @@ export function isFeatureAllowed(plan: PlanTier, feature: string): boolean {
   return PLAN_TIERS[plan] >= PLAN_TIERS[required];
 }
 
-/** 从 plan_periods 查询当前活跃方案 */
+/** 从 plan_periods 查询当前活跃方案，查不到时回退 users 表 */
 export async function getUserPlan(userId: string): Promise<PlanTier> {
+  // 优先查 plan_periods
   try {
     const now = new Date();
     const rows = await db
@@ -55,11 +56,29 @@ export async function getUserPlan(userId: string): Promise<PlanTier> {
 
     const plan = rows[0]?.plan;
     if (plan === "pro" || plan === "enterprise") return plan;
-    return "basic";
   } catch {
-    // plan_periods 表可能尚未创建
-    return "basic";
+    console.error("[getUserPlan] plan_periods query failed, falling back to users table");
   }
+
+  // 回退：查 users 表旧字段
+  try {
+    const userRows = await db
+      .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const u = userRows[0];
+    if (u?.plan === "pro" || u?.plan === "enterprise") {
+      if (u.planExpiresAt && new Date(u.planExpiresAt) > new Date()) {
+        return u.plan;
+      }
+    }
+  } catch {
+    console.error("[getUserPlan] users table fallback also failed");
+  }
+
+  return "basic";
 }
 
 /** 返回最远的到期时间（用于前端显示） */
@@ -129,8 +148,12 @@ export async function grantPlanPeriod(
       endsAt: endAt,
     });
 
-    // 新方案立即生效 → 额度设为方案配额
-    await db.update(users).set({ credits: PLAN_CREDITS[newPlan] }).where(eq(users.id, userId));
+    // 新方案立即生效 → 额度设为方案配额，同时写 users 表确保兼容
+    await db.update(users).set({
+      credits: PLAN_CREDITS[newPlan],
+      plan: newPlan,
+      planExpiresAt: endAt,
+    }).where(eq(users.id, userId));
     return;
   }
 
@@ -144,8 +167,11 @@ export async function grantPlanPeriod(
       .set({ endsAt: newActiveEnd })
       .where(eq(planPeriods.id, active.id));
 
-    // 额度重置为方案配额
-    await db.update(users).set({ credits: PLAN_CREDITS[newPlan] }).where(eq(users.id, userId));
+    // 额度重置为方案配额，同时更新 users 表到期时间
+    await db.update(users).set({
+      credits: PLAN_CREDITS[newPlan],
+      planExpiresAt: newActiveEnd,
+    }).where(eq(users.id, userId));
 
     // 后移所有后续周期（用 JS 逐条处理，避免 raw SQL 兼容问题）
     const futureRows = await db
@@ -190,8 +216,12 @@ export async function grantPlanPeriod(
       endsAt: highEnd,
     });
 
-    // 升级 → 额度设为高级方案配额
-    await db.update(users).set({ credits: PLAN_CREDITS[newPlan] }).where(eq(users.id, userId));
+    // 升级 → 额度设为高级方案配额，同时更新 users 表
+    await db.update(users).set({
+      credits: PLAN_CREDITS[newPlan],
+      plan: newPlan,
+      planExpiresAt: highEnd,
+    }).where(eq(users.id, userId));
 
     // 剩余低级时间顺延
     if (remainingMs > 0) {
