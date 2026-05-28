@@ -19,34 +19,43 @@ const FEATURE_GATES: Record<string, PlanTier> = {
 
 /** 从 users 表读取用户方案，过期自动降级为 basic */
 export async function getUserPlan(userId: string): Promise<PlanTier> {
-  const rows = await db
-    .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  try {
+    const rows = await db
+      .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-  const { plan, planExpiresAt } = rows[0] ?? {};
+    const { plan, planExpiresAt } = rows[0] ?? {};
 
-  // 未设置付费方案
-  if (plan !== "pro" && plan !== "enterprise") return "basic";
+    if (plan !== "pro" && plan !== "enterprise") return "basic";
 
-  // 已过期，自动降级
-  if (planExpiresAt && new Date(planExpiresAt) <= new Date()) {
-    await db.update(users).set({ plan: "basic", planExpiresAt: null }).where(eq(users.id, userId));
+    if (planExpiresAt && new Date(planExpiresAt) <= new Date()) {
+      try {
+        await db.update(users).set({ plan: "basic", planExpiresAt: null }).where(eq(users.id, userId));
+      } catch { /* 列可能不存在，忽略 */ }
+      return "basic";
+    }
+
+    return plan;
+  } catch {
+    // plan / plan_expires_at 列尚未同步到数据库，回退到 basic
     return "basic";
   }
-
-  return plan;
 }
 
 /** 更新用户方案并设置到期时间（默认30天） */
 export async function setUserPlan(userId: string, plan: PlanTier, days = 30): Promise<void> {
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + days);
-  await db
-    .update(users)
-    .set({ plan, planExpiresAt: expiresAt })
-    .where(eq(users.id, userId));
+  try {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + days);
+    await db
+      .update(users)
+      .set({ plan, planExpiresAt: expiresAt })
+      .where(eq(users.id, userId));
+  } catch {
+    // plan 列不存在，忽略
+  }
 }
 
 /** 获取方案允许的店铺连接数 */

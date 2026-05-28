@@ -13,7 +13,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "未登录" }, { status: 401 });
   }
 
-  const userRows = await db.select().from(users).where(eq(users.id, auth.userId)).limit(1);
+  // 显式选择已知列，避免 plan/planExpiresAt 不存在时报错
+  const userRows = await db
+    .select({ id: users.id, email: users.email, name: users.name, credits: users.credits, createdAt: users.createdAt })
+    .from(users)
+    .where(eq(users.id, auth.userId))
+    .limit(1);
   const t2 = Date.now();
   const user = userRows[0];
   if (!user) {
@@ -37,7 +42,6 @@ export async function GET(req: NextRequest) {
     name: user.name,
     credits: user.credits ?? 100,
     plan,
-    planExpiresAt: user.planExpiresAt?.toISOString() ?? null,
     shopLimit: shopLimit === Infinity ? -1 : shopLimit,
     createdAt: user.createdAt?.toISOString() ?? null,
     transactions: transactions
