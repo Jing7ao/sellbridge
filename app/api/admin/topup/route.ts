@@ -4,21 +4,25 @@ import { users, creditTransactions } from "../../../../src/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 import { grantPlanPeriod, getUserPlan, getPlanExpiry, PLAN_CREDITS } from "../../../../src/billing/limits";
+import { verifyAdminToken, getAdminCookieName } from "../../../../src/auth/admin-auth";
 
 /**
  * 管理员手动充值接口
- * POST { email, amount?, key, plan?, months? }
- * key 从环境变量 ADMIN_KEY 读取
+ * POST { email, amount?, key?, plan?, months? }
+ * 支持两种鉴权：admin cookie 或 key 参数
  * plan 可选 "pro" | "enterprise"，传入则购买/续费方案，amount 默认取方案配额
  * amount 可选，额外追加额度（超出方案配额的部分）
  * months 购买月数，默认 1
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, amount, key, plan, months } = await req.json();
+    const body = await req.json();
+    const { email, amount, key, plan, months } = body;
 
     const adminKey = process.env.ADMIN_KEY || "sellbridge-admin-2026";
-    if (!key || key !== adminKey) {
+    const cookieToken = req.cookies.get(getAdminCookieName())?.value;
+    const isAdmin = (cookieToken && verifyAdminToken(cookieToken)) || (key && key === adminKey);
+    if (!isAdmin) {
       return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
 

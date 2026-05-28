@@ -34,9 +34,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: session } = useSession();
 
-  const isLoginPage = pathname === "/login";
+  const isStandalone = pathname === "/login" || pathname.startsWith("/admin");
 
-  if (isLoginPage) {
+  if (isStandalone) {
     return <>{children}</>;
   }
 
